@@ -45,5 +45,15 @@
     "status": "to-read",
     "note": "",
     "rating": 0
+  },
+  {
+    "id": 1768651202765,
+    "title": "アメリカと私 (講談社文芸文庫)",
+    "url": "https://www.amazon.co.jp/%E3%82%A2%E3%83%A1%E3%83%AA%E3%82%AB%E3%81%A8%E7%A7%81-%E8%AC%9B%E8%AB%87%E7%A4%BE%E6%96%87%E8%8A%B8%E6%96%87%E5%BA%AB-%E6%B1%9F%E8%97%A4%E6%B7%B3-ebook/dp/B07L2WX1XV",
+    "type": "Book",
+    "goal": "technical",
+    "status": "to-read",
+    "note": "",
+    "rating": 0
   }
 ]
