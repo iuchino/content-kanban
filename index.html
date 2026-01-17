@@ -14,13 +14,15 @@
         .cat-howto { border-left: 5px solid #f59e0b; }     
         .cat-entertainment { border-left: 5px solid #ef4444; }
 
-        /* Compact Swipe Styles */
-        .swipe-container { position: relative; margin-bottom: 1rem; background: #ef4444; border-radius: 1.25rem; overflow: hidden; }
+        /* SAFETY DELETE BUTTON: Top-Right Only */
+        .swipe-container { position: relative; margin-bottom: 1rem; background: #fee2e2; border-radius: 1.25rem; overflow: hidden; }
         .swipe-content { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); background: white; z-index: 2; position: relative; }
         .delete-action { 
-            position: absolute; right: 0; top: 0; height: 60px; /* Limited height to match title area */
+            position: absolute; right: 0; top: 0; 
+            height: 70px; /* HEIGHT RESTRICTED to Title area only */
             width: 80px; display: flex; align-items: center; justify-content: center;
-            color: white; font-weight: bold; font-size: 12px; z-index: 1;
+            background: #ef4444; color: white; font-weight: 800; font-size: 14px; 
+            z-index: 1; border-radius: 0 1.25rem 0 1.25rem;
         }
     </style>
 </head>
@@ -39,7 +41,7 @@
                  <button onclick="setupToken()" class="bg-gray-100 p-2.5 rounded-full">🔑</button>
             </div>
         </div>
-        <input id="search-input" type="text" oninput="renderBoard()" placeholder="タイトル、メモで検索..." class="w-full bg-gray-100 border-none rounded-xl p-3 text-sm outline-none focus:ring-2 focus:ring-blue-100">
+        <input id="search-input" type="text" oninput="renderBoard()" placeholder="タイトル、メモで検索..." class="w-full bg-gray-100 border-none rounded-xl p-3 text-sm outline-none">
     </header>
 
     <main class="p-4">
@@ -51,70 +53,53 @@
                     <select id="new-type" class="bg-gray-50 p-2 rounded-lg text-xs font-bold border-none"><option value="Book">📚 本</option><option value="Movie">🎬 映画</option><option value="Drama">📺 ドラマ</option></select>
                     <select id="new-goal" class="bg-gray-50 p-2 rounded-lg text-xs font-bold border-none"><option value="technical">💻 Technical</option><option value="finance">💰 Finance</option><option value="religion">🙏 Strategy/Rel</option><option value="howto">🛠 How-To</option><option value="entertainment">🎭 Entertainment</option></select>
                 </div>
-                <button onclick="addNewItem()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md active:bg-blue-700 transition">リストに追加</button>
+                <button onclick="addNewItem()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md">リストに追加</button>
             </div>
         </div>
         <div id="list-container"></div>
     </main>
 
     <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-20 shadow-lg z-20">
-        <button onclick="changeTab('to-read')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-to-read"><span class="text-xl">📅</span><span class="text-[10px] font-black uppercase">予定</span></button>
-        <button onclick="changeTab('progress')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-progress"><span class="text-xl">📖</span><span class="text-[10px] font-black uppercase">進行中</span></button>
-        <button onclick="changeTab('complete')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-complete"><span class="text-xl">✅</span><span class="text-[10px] font-black uppercase">完了</span></button>
+        <button onclick="changeTab('to-read')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-to-read">
+            <span class="text-xl">📅</span><span class="text-[10px] font-black uppercase">予定 <span id="count-to-read">(0)</span></span>
+        </button>
+        <button onclick="changeTab('progress')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-progress">
+            <span class="text-xl">📖</span><span class="text-[10px] font-black uppercase">進行中 <span id="count-progress">(0)</span></span>
+        </button>
+        <button onclick="changeTab('complete')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-complete">
+            <span class="text-xl">✅</span><span class="text-[10px] font-black uppercase">完了 <span id="count-complete">(0)</span></span>
+        </button>
     </nav>
 
     <script>
-        let GITHUB_CONFIG = { 
-            token: localStorage.getItem('gh_token') || '', 
-            owner: 'iuchino', 
-            repo: 'content-kanban', 
-            path: 'data.json' 
-        };
+        let GITHUB_CONFIG = { token: localStorage.getItem('gh_token') || '', owner: 'iuchino', repo: 'content-kanban', path: 'data.json' };
         let myContent = [];
         let currentTab = 'to-read';
         let touchStartX = 0;
 
-        function updateTimestamp() {
-            const now = new Date();
-            document.getElementById('last-saved').innerText = `Sync: ${now.getHours()}:${now.getMinutes().toString().padStart(2, '0')}`;
+        function updateUI() {
+            document.getElementById('count-to-read').innerText = `(${myContent.filter(i => i.status === 'to-read').length})`;
+            document.getElementById('count-progress').innerText = `(${myContent.filter(i => i.status === 'progress').length})`;
+            document.getElementById('count-complete').innerText = `(${myContent.filter(i => i.status === 'complete').length})`;
+            renderBoard();
         }
 
         async function loadData() {
             const statusEl = document.getElementById('sync-status');
-            if(!GITHUB_CONFIG.token) { statusEl.innerText = "TOKEN REQUIRED (🔑)"; return; }
+            if(!GITHUB_CONFIG.token) return;
             statusEl.innerText = "CONNECTING...";
             try {
                 const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}?t=${new Date().getTime()}`;
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `token ${GITHUB_CONFIG.token.trim()}`, 'Accept': 'application/vnd.github.v3+json' }
-                });
+                const res = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token.trim()}`, 'Accept': 'application/vnd.github.v3+json' } });
                 if (res.ok) {
                     const data = await res.json();
-                    const decoded = decodeURIComponent(escape(atob(data.content)));
-                    myContent = JSON.parse(decoded);
-                    renderBoard();
+                    myContent = JSON.parse(decodeURIComponent(escape(atob(data.content))));
+                    updateUI();
                     statusEl.innerText = "CLOUD SYNC ACTIVE";
                     statusEl.className = "text-[9px] text-green-600 font-bold uppercase mt-1";
-                    updateTimestamp();
-                } else { statusEl.innerText = `OFFLINE (${res.status})`; }
+                    document.getElementById('last-saved').innerText = `Sync: ${new Date().getHours()}:${new Date().getMinutes().toString().padStart(2, '0')}`;
+                }
             } catch (e) { statusEl.innerText = "SYNC ERROR"; }
-        }
-
-        async function saveToGitHub() {
-            if(!GITHUB_CONFIG.token) { alert("Tokenを設定してください"); return; }
-            const statusEl = document.getElementById('sync-status');
-            statusEl.innerText = "UPLOADING...";
-            try {
-                const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
-                const getRes = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token.trim()}`, 'Cache-Control': 'no-cache' }});
-                const fileData = await getRes.json();
-                const content = btoa(unescape(encodeURIComponent(JSON.stringify(myContent, null, 2))));
-                const res = await fetch(url, {
-                    method: 'PUT', headers: { 'Authorization': `token ${GITHUB_CONFIG.token.trim()}`, 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ message: "Sync", content, sha: fileData.sha })
-                });
-                if(res.ok) { alert("✅ 保存完了"); updateTimestamp(); statusEl.innerText = "CLOUD SYNC ACTIVE"; }
-            } catch (e) { alert("Save Error"); statusEl.innerText = "SYNC ERROR"; }
         }
 
         function renderBoard() {
@@ -129,16 +114,16 @@
                     <div class="delete-action" onclick="deleteItem(${item.id})">削除</div>
                     <div class="swipe-content bg-white p-5 border border-gray-100 relative cat-${item.goal || 'entertainment'}" 
                          ontouchstart="handleTouchStart(event)" ontouchmove="handleTouchMove(event, this)">
-                        <div class="flex justify-between items-center mb-2">
+                        <div class="flex justify-between items-center mb-1">
                             <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">${item.type} | ${item.goal}</span>
                         </div>
-                        <h3 class="font-bold text-gray-800 text-lg mb-1 leading-tight">${item.title}</h3>
+                        <h3 class="font-bold text-gray-800 text-lg mb-1 leading-tight pr-10">${item.title}</h3>
                         ${item.url ? `<a href="${item.url}" target="_blank" class="text-[11px] text-blue-500 underline mb-3 block truncate">🔗 リソースを開く</a>` : ''}
                         <textarea onchange="updateNote(${item.id}, this.value)" placeholder="メモ..." class="w-full text-sm p-3 bg-gray-50 rounded-xl h-28 mb-4 border-none outline-none focus:ring-1 focus:ring-blue-100">${item.note || ''}</textarea>
                         <div class="flex gap-2">
                             ${currentTab === 'progress' ? `<button onclick="moveBack(${item.id})" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm">← 戻す</button>` : ''}
-                            ${currentTab !== 'complete' ? `<button onclick="moveItem(${item.id})" class="flex-[2] bg-blue-600 text-white font-bold py-3 rounded-xl text-sm shadow-md active:bg-blue-700 transition">NEXT →</button>` : 
-                            `<select onchange="updateRating(${item.id}, this.value)" class="w-full bg-yellow-50 text-yellow-700 font-bold py-3 px-4 rounded-xl text-sm border-none outline-none"><option value="0">Rating</option>${[1,2,3,4,5].map(n => `<option value="${n}" ${item.rating == n ? 'selected' : ''}>⭐ ${n}</option>`).join('')}</select>`}
+                            ${currentTab !== 'complete' ? `<button onclick="moveItem(${item.id})" class="flex-[2] bg-blue-600 text-white font-bold py-3 rounded-xl text-sm shadow-md">NEXT →</button>` : 
+                            `<select onchange="updateRating(${item.id}, this.value)" class="w-full bg-yellow-50 text-yellow-700 font-bold py-3 px-4 rounded-xl text-sm border-none"><option value="0">Rating</option>${[1,2,3,4,5].map(n => `<option value="${n}" ${item.rating == n ? 'selected' : ''}>⭐ ${n}</option>`).join('')}</select>`}
                         </div>
                     </div>`;
                 container.appendChild(cardWrapper);
@@ -152,20 +137,36 @@
             else if (diff < -20) el.style.transform = `translateX(0px)`; 
         }
 
+        async function saveToGitHub() {
+            if(!GITHUB_CONFIG.token) return;
+            document.getElementById('sync-status').innerText = "UPLOADING...";
+            try {
+                const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
+                const getRes = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token.trim()}`, 'Cache-Control': 'no-cache' }});
+                const fileData = await getRes.json();
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(myContent, null, 2))));
+                const res = await fetch(url, {
+                    method: 'PUT', headers: { 'Authorization': `token ${GITHUB_CONFIG.token.trim()}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: "Sync", content, sha: fileData.sha })
+                });
+                if(res.ok) { alert("✅ 保存完了"); loadData(); }
+            } catch (e) { alert("Save Error"); }
+        }
+
         function moveItem(id) {
             const item = myContent.find(i => i.id === id);
             if (item.status === 'to-read') {
                 if (myContent.filter(i => i.status === 'progress').length >= 4) { alert("進行中は最大4つまでです"); return; }
                 item.status = 'progress';
             } else if (item.status === 'progress') { item.status = 'complete'; }
-            renderBoard();
+            updateUI();
         }
-        function moveBack(id) { myContent.find(i => i.id === id).status = 'to-read'; renderBoard(); }
-        function addNewItem() { const title = document.getElementById('new-title').value; if(!title) return; myContent.push({ id: Date.now(), title, url: document.getElementById('new-link').value, type: document.getElementById('new-type').value, goal: document.getElementById('new-goal').value, status: 'to-read', note: '', rating: 0 }); document.getElementById('new-title').value = ''; document.getElementById('new-link').value = ''; renderBoard(); }
+        function moveBack(id) { myContent.find(i => i.id === id).status = 'to-read'; updateUI(); }
+        function addNewItem() { const title = document.getElementById('new-title').value; if(!title) return; myContent.push({ id: Date.now(), title, url: document.getElementById('new-link').value, type: document.getElementById('new-type').value, goal: document.getElementById('new-goal').value, status: 'to-read', note: '', rating: 0 }); document.getElementById('new-title').value = ''; updateUI(); }
         function changeTab(tab) { currentTab = tab; document.getElementById('view-title').innerText = {'to-read':'予定リスト','progress':'進行中','complete':'完了リスト'}[tab]; document.getElementById('add-form').style.display = (tab==='to-read')?'block':'none'; document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('tab-active')); document.getElementById(`btn-${tab}`).classList.add('tab-active'); renderBoard(); }
         function updateNote(id, val) { myContent.find(i => i.id === id).note = val; }
-        function updateRating(id, val) { myContent.find(i => i.id === id).rating = parseInt(val); renderBoard(); }
-        function deleteItem(id) { if(confirm("この本を削除しますか？")) { myContent = myContent.filter(i => i.id !== id); renderBoard(); } }
+        function updateRating(id, val) { myContent.find(i => i.id === id).rating = parseInt(val); updateUI(); }
+        function deleteItem(id) { if(confirm("削除しますか？")) { myContent = myContent.filter(i => i.id !== id); updateUI(); } }
         function setupToken() { const t = prompt("GitHub Token:", GITHUB_CONFIG.token); if(t !== null) { GITHUB_CONFIG.token = t.trim(); localStorage.setItem('gh_token', t.trim()); loadData(); } }
         function downloadBackup() { const blob = new Blob([JSON.stringify(myContent, null, 2)], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `kanban_backup.json`; a.click(); }
 
