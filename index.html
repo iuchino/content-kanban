@@ -2,58 +2,68 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Content Strategy Board</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Content Strategy</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        .kanban-column { min-height: 70vh; background-color: #f3f4f6; border-radius: 8px; padding: 1rem; }
-        .card { background: white; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        textarea { resize: none; border: 1px solid #e5e7eb; }
+        body { padding-bottom: 80px; } /* Space for bottom nav */
+        .tab-active { color: #2563eb; border-top: 3px solid #2563eb; }
+        .hidden { display: none; }
     </style>
 </head>
-<body class="bg-gray-100 p-4 md:p-8">
+<body class="bg-gray-50">
 
-    <header class="mb-8 flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <div>
-            <h1 class="text-2xl font-bold text-gray-800 tracking-tight">Content Kanban</h1>
-            <p id="status-msg" class="text-xs text-gray-500 font-medium">Ready</p>
-        </div>
+    <header class="bg-white p-4 shadow-sm sticky top-0 z-10 flex justify-between items-center">
+        <h1 id="view-title" class="text-xl font-bold text-gray-800">To Read</h1>
         <div class="flex gap-2">
-            <button onclick="saveToGitHub()" class="bg-green-600 text-white px-4 py-2 rounded shadow hover:bg-green-700 font-bold transition">💾 Save to GitHub</button>
-            <button onclick="setupToken()" class="bg-gray-800 text-white px-4 py-2 rounded shadow text-xs">🔑 Token Setting</button>
+             <button onclick="saveToGitHub()" class="bg-green-600 text-white p-2 rounded-full shadow-md">💾</button>
+             <button onclick="setupToken()" class="bg-gray-100 p-2 rounded-full">🔑</button>
         </div>
     </header>
 
-    <div class="bg-white p-4 rounded-lg shadow-sm mb-8 border border-gray-200">
-        <div class="flex flex-wrap gap-2">
-            <input id="new-title" type="text" placeholder="Title / タイトル" class="border p-2 rounded flex-1">
-            <select id="new-type" class="border p-2 rounded bg-white">
-                <option value="Book">📚 本</option>
-                <option value="Movie">🎬 映画</option>
-                <option value="Drama">📺 ドラマ</option>
-            </select>
-            <button onclick="addNewItem()" class="bg-blue-600 text-white px-6 py-2 rounded hover:bg-blue-700 font-bold">Add</button>
+    <main class="p-4">
+        <div id="add-form" class="mb-6">
+            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
+                <input id="new-title" type="text" placeholder="タイトルを入力..." class="w-full border-b p-2 mb-3 outline-none">
+                <div class="flex justify-between items-center">
+                    <select id="new-type" class="bg-gray-100 p-2 rounded text-sm">
+                        <option value="Book">📚 本</option>
+                        <option value="Movie">🎬 映画</option>
+                        <option value="Drama">📺 ドラマ</option>
+                    </select>
+                    <button onclick="addNewItem()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">追加</button>
+                </div>
+            </div>
         </div>
-    </div>
 
-    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div><h2 class="text-sm font-bold mb-3 text-blue-600 border-b-2 border-blue-600 pb-1 uppercase tracking-wider">To Read / Watch</h2><div id="col-to-read" class="kanban-column"></div></div>
-        <div><h2 class="text-sm font-bold mb-3 text-yellow-600 border-b-2 border-yellow-600 pb-1 uppercase tracking-wider">In Progress</h2><div id="col-progress" class="kanban-column"></div></div>
-        <div><h2 class="text-sm font-bold mb-3 text-green-600 border-b-2 border-green-600 pb-1 uppercase tracking-wider">Complete</h2><div id="col-complete" class="kanban-column"></div></div>
-    </div>
+        <div id="list-container" class="space-y-4">
+            </div>
+    </main>
+
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-16 shadow-lg z-20">
+        <button onclick="changeTab('to-read')" class="nav-btn flex flex-col items-center flex-1 py-2 text-gray-400" id="btn-to-read">
+            <span class="text-xl">📅</span>
+            <span class="text-[10px] font-bold">予定</span>
+        </button>
+        <button onclick="changeTab('progress')" class="nav-btn flex flex-col items-center flex-1 py-2 text-gray-400" id="btn-progress">
+            <span class="text-xl">📖</span>
+            <span class="text-[10px] font-bold">進行中</span>
+        </button>
+        <button onclick="changeTab('complete')" class="nav-btn flex flex-col items-center flex-1 py-2 text-gray-400" id="btn-complete">
+            <span class="text-xl">✅</span>
+            <span class="text-[10px] font-bold">完了</span>
+        </button>
+    </nav>
 
     <script>
         let myContent = [];
+        let currentTab = 'to-read';
         let GITHUB_CONFIG = { 
             token: localStorage.getItem('gh_token') || '', 
-            owner: 'iuchino', 
-            repo: 'content-kanban', 
-            path: 'data.json' 
+            owner: 'iuchino', repo: 'content-kanban', path: 'data.json' 
         };
 
-        // Load data on start
         async function loadData() {
-            document.getElementById('status-msg').innerText = "Loading data...";
             try {
                 const res = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`, {
                     headers: GITHUB_CONFIG.token ? { 'Authorization': `token ${GITHUB_CONFIG.token}` } : {}
@@ -62,34 +72,56 @@
                     const data = await res.json();
                     myContent = JSON.parse(decodeURIComponent(escape(atob(data.content))));
                     renderBoard();
-                    document.getElementById('status-msg').innerText = "Cloud Sync Active";
-                } else {
-                    document.getElementById('status-msg').innerText = "Local Mode (No Token)";
                 }
-            } catch (e) { document.getElementById('status-msg').innerText = "Load Failed"; }
+            } catch (e) { console.error(e); }
+        }
+
+        function changeTab(tab) {
+            currentTab = tab;
+            const titles = {'to-read': '予定リスト', 'progress': '現在進行中', 'complete': '完了アーカイブ'};
+            document.getElementById('view-title').innerText = titles[tab];
+            
+            // Toggle form visibility
+            document.getElementById('add-form').style.display = (tab === 'to-read') ? 'block' : 'none';
+            
+            // Update Nav UI
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('tab-active'));
+            document.getElementById(`btn-${tab}`).classList.add('tab-active');
+            
+            renderBoard();
         }
 
         function renderBoard() {
-            document.querySelectorAll('.kanban-column').forEach(el => el.innerHTML = '');
-            myContent.forEach(item => {
+            const container = document.getElementById('list-container');
+            container.innerHTML = '';
+            
+            const filtered = myContent.filter(item => item.status === currentTab);
+            
+            filtered.forEach(item => {
                 const card = document.createElement('div');
-                card.className = 'card';
+                card.className = 'bg-white p-4 rounded-xl shadow-sm border border-gray-100';
                 card.innerHTML = `
-                    <div class="flex justify-between items-start mb-1">
-                        <span class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">${item.type}</span>
-                        <button onclick="deleteItem(${item.id})" class="text-gray-300 hover:text-red-500 text-xs">✕</button>
+                    <div class="flex justify-between items-center mb-2">
+                        <span class="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded uppercase">${item.type}</span>
+                        <button onclick="deleteItem(${item.id})" class="text-gray-300 text-xs">削除</button>
                     </div>
-                    <h3 class="font-bold text-gray-800 mb-2 leading-tight">${item.title}</h3>
-                    <textarea onchange="updateNote(${item.id}, this.value)" placeholder="Key takeaways / 感想..." class="w-full text-xs p-2 bg-gray-50 rounded h-20 mb-2">${item.note || ''}</textarea>
+                    <h3 class="font-bold text-gray-800 mb-2">${item.title}</h3>
+                    <textarea onchange="updateNote(${item.id}, this.value)" placeholder="メモを残す..." class="w-full text-sm p-3 bg-gray-50 rounded-lg h-24 mb-3 border-none outline-none focus:ring-1 focus:ring-blue-200">${item.note || ''}</textarea>
                     <div class="flex justify-between items-center">
-                        ${item.status !== 'complete' ? `<button onclick="moveItem(${item.id})" class="text-[10px] bg-blue-50 text-blue-600 px-3 py-1 rounded border border-blue-100 font-bold">NEXT →</button>` : '<span class="text-xs">✅ Done</span>'}
-                        ${item.status === 'complete' ? `<select onchange="updateRating(${item.id}, this.value)" class="text-[10px] border rounded p-1 bg-white font-bold text-yellow-600"><option value="0">Rating</option>${[1,2,3,4,5].map(n => `<option value="${n}" ${item.rating == n ? 'selected' : ''}>${n} Stars</option>`).join('')}</select>` : ''}
+                        ${currentTab !== 'complete' ? 
+                            `<button onclick="moveItem(${item.id})" class="w-full bg-blue-50 text-blue-600 font-bold py-2 rounded-lg text-sm">次へ進める →</button>` : 
+                            `<select onchange="updateRating(${item.id}, this.value)" class="bg-yellow-50 text-yellow-700 font-bold py-2 px-4 rounded-lg text-sm">
+                                <option value="0">評価なし</option>
+                                ${[1,2,3,4,5].map(n => `<option value="${n}" ${item.rating == n ? 'selected' : ''}>⭐ ${n}</option>`).join('')}
+                            </select>`
+                        }
                     </div>
                 `;
-                document.getElementById(`col-${item.status}`).appendChild(card);
+                container.appendChild(card);
             });
         }
 
+        // Logic functions (Add, Move, Delete, Save) are same as before
         function addNewItem() {
             const title = document.getElementById('new-title').value;
             if(!title) return;
@@ -97,29 +129,20 @@
             document.getElementById('new-title').value = '';
             renderBoard();
         }
-
         function updateNote(id, val) { myContent.find(i => i.id === id).note = val; }
         function updateRating(id, val) { myContent.find(i => i.id === id).rating = parseInt(val); renderBoard(); }
-        function moveItem(id) { 
+        function moveItem(id) {
             const item = myContent.find(i => i.id === id);
-            item.status = item.status === 'to-read' ? 'progress' : 'complete';
-            renderBoard(); 
+            item.status = (item.status === 'to-read') ? 'progress' : 'complete';
+            renderBoard();
         }
-        function deleteItem(id) { if(confirm("Delete item?")) { myContent = myContent.filter(i => i.id !== id); renderBoard(); } }
-
+        function deleteItem(id) { if(confirm("削除しますか？")) { myContent = myContent.filter(i => i.id !== id); renderBoard(); } }
         function setupToken() {
-            const t = prompt("Paste your GitHub Token:", GITHUB_CONFIG.token);
-            if(t !== null) {
-                GITHUB_CONFIG.token = t;
-                localStorage.setItem('gh_token', t);
-                loadData();
-                alert("Token saved to this device.");
-            }
+            const t = prompt("GitHub Token:", GITHUB_CONFIG.token);
+            if(t !== null) { GITHUB_CONFIG.token = t; localStorage.setItem('gh_token', t); loadData(); }
         }
-
         async function saveToGitHub() {
-            if(!GITHUB_CONFIG.token) { alert("Please set your Token first."); return; }
-            document.getElementById('status-msg').innerText = "Saving to GitHub...";
+            if(!GITHUB_CONFIG.token) { alert("Tokenを設定してください"); return; }
             const content = btoa(unescape(encodeURIComponent(JSON.stringify(myContent, null, 2))));
             const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
             const getRes = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token}` }});
@@ -127,15 +150,14 @@
             const res = await fetch(url, {
                 method: 'PUT',
                 headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: "Update via Kanban App", content: content, sha: fileData ? fileData.sha : null })
+                body: JSON.stringify({ message: "Update via App", content, sha: fileData ? fileData.sha : null })
             });
-            if(res.ok) {
-                alert("Saved successfully!");
-                document.getElementById('status-msg').innerText = "Cloud Sync Active";
-            } else { alert("Error saving. Check your token."); }
+            if(res.ok) alert("保存完了！");
+            else alert("保存エラー");
         }
 
         loadData();
+        changeTab('to-read');
     </script>
 </body>
 </html>
