@@ -31,13 +31,13 @@
     <header class="bg-white p-4 shadow-sm sticky top-0 z-30">
         <div class="flex justify-between items-center mb-2">
             <div>
-                <h1 id="view-title" class="text-xl font-bold leading-none text-blue-600">予定リスト</h1>
+                <h1 id="view-title" class="text-xl font-bold leading-none text-blue-600">読み込み中...</h1>
                 <p id="sync-status" class="text-[9px] text-gray-400 font-bold uppercase mt-1">Ready</p>
                 <p id="last-saved" class="text-[8px] text-blue-400 font-medium">Sync: ---</p>
             </div>
             <div class="flex gap-2">
                  <button onclick="downloadBackup()" class="bg-blue-50 text-blue-600 p-2.5 rounded-full">📥</button>
-                 <button onclick="saveToGitHub()" class="bg-green-600 text-white p-2.5 rounded-full shadow-lg active:scale-95">💾</button>
+                 <button onclick="saveToGitHub()" class="bg-green-600 text-white p-2.5 rounded-full shadow-lg">💾</button>
                  <button onclick="setupToken()" class="bg-gray-100 p-2.5 rounded-full">🔑</button>
             </div>
         </div>
@@ -45,7 +45,7 @@
     </header>
 
     <main class="p-4">
-        <div id="add-form" class="mb-6">
+        <div id="add-form" class="mb-6" style="display:none;">
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                 <input id="new-title" type="text" placeholder="タイトル..." class="w-full border-b border-gray-100 p-2 mb-3 outline-none text-lg font-bold">
                 <input id="new-link" type="url" placeholder="URL (Amazonなど)" class="w-full border-b border-gray-100 p-2 mb-4 outline-none text-xs text-blue-500">
@@ -53,22 +53,22 @@
                     <select id="new-type" class="bg-gray-50 p-2 rounded-lg text-xs font-bold border-none"><option value="Book">📚 本</option><option value="Movie">🎬 映画</option><option value="Drama">📺 ドラマ</option></select>
                     <select id="new-goal" class="bg-gray-50 p-2 rounded-lg text-xs font-bold border-none"><option value="technical">💻 Technical</option><option value="finance">💰 Finance</option><option value="religion">🙏 Strategy/Rel</option><option value="howto">🛠 How-To</option><option value="entertainment">🎭 Entertainment</option></select>
                 </div>
-                <button onclick="addNewItem()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md active:bg-blue-700 transition transform active:scale-[0.98]">リストに追加</button>
+                <button onclick="addNewItem()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md">リストに追加</button>
             </div>
         </div>
         <div id="list-container" class="space-y-4"></div>
     </main>
 
     <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-24 shadow-lg z-20 pb-8">
-        <button onclick="changeTab('to-read')" class="nav-btn flex flex-col items-center flex-1" id="btn-to-read">
-            <span class="text-xl">📅</span><span class="text-[10px] font-black uppercase">予定</span>
+        <button onclick="changeTab('to-read', '予定リスト')" class="nav-btn flex flex-col items-center flex-1" id="btn-to-read">
+            <span class="text-xl">📅</span><span class="text-[10px] font-black uppercase">予定リスト</span>
             <span class="nav-counter" id="count-to-read">0</span>
         </button>
-        <button onclick="changeTab('progress')" class="nav-btn flex flex-col items-center flex-1" id="btn-progress">
+        <button onclick="changeTab('progress', '進行中')" class="nav-btn flex flex-col items-center flex-1" id="btn-progress">
             <span class="text-xl">📖</span><span class="text-[10px] font-black uppercase">進行中</span>
             <span class="nav-counter" id="count-progress">0</span>
         </button>
-        <button onclick="changeTab('complete')" class="nav-btn flex flex-col items-center flex-1" id="btn-complete">
+        <button onclick="changeTab('complete', '完了')" class="nav-btn flex flex-col items-center flex-1" id="btn-complete">
             <span class="text-xl">✅</span><span class="text-[10px] font-black uppercase">完了</span>
             <span class="nav-counter" id="count-complete">0</span>
         </button>
@@ -77,7 +77,8 @@
     <script>
         const GITHUB_CONFIG = { token: localStorage.getItem('gh_token') || '', owner: 'iuchino', repo: 'content-kanban', path: 'data.json' };
         let myContent = [];
-        let currentTab = 'to-read';
+        let currentTab = localStorage.getItem('last_tab') || 'to-read';
+        let currentLabel = localStorage.getItem('last_label') || '予定リスト';
         let touchStartX = 0;
 
         function updateUI() {
@@ -156,35 +157,41 @@
             const titleInput = document.getElementById('new-title');
             const linkInput = document.getElementById('new-link');
             if(!titleInput.value) return;
-            
-            myContent.push({
-                id: Date.now(),
-                title: titleInput.value,
-                url: linkInput.value,
-                type: document.getElementById('new-type').value,
-                goal: document.getElementById('new-goal').value,
-                status: 'to-read',
-                note: '',
-                rating: 0
-            });
-            
-            // --- FIX: Reset the form fields ---
-            titleInput.value = '';
-            linkInput.value = '';
-            updateUI();
+            myContent.push({ id: Date.now(), title: titleInput.value, url: linkInput.value, type: document.getElementById('new-type').value, goal: document.getElementById('new-goal').value, status: 'to-read', note: '', rating: 0 });
+            titleInput.value = ''; linkInput.value = ''; updateUI();
         }
 
         function moveItem(id) { let i = myContent.find(x=>x.id===id); if(i.status==='to-read'){ if(myContent.filter(x=>x.status==='progress').length>=4){alert("Limit 4!"); return;} i.status='progress'; } else { i.status='complete'; } updateUI(); }
         function moveBack(id) { myContent.find(x=>x.id===id).status='to-read'; updateUI(); }
         function updateNote(id, v) { myContent.find(x=>x.id===id).note = v; }
         function updateRating(id, v) { myContent.find(x=>x.id===id).rating = parseInt(v); updateUI(); }
-        function deleteItem(id) { if(confirm("削除しますか？")) { myContent = myContent.filter(x=>x.id!==id); updateUI(); } }
-        function changeTab(t) { currentTab = t; document.getElementById('add-form').style.display = (t==='to-read')?'block':'none'; document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('tab-active')); document.getElementById(`btn-${t}`).classList.add('tab-active'); updateUI(); }
+        function deleteItem(id) { if(confirm("削除しますか？")) { myContent = myContent.filter(x=>x.id !== id); updateUI(); } }
+        
+        // --- PERSISTENT CHANGE TAB ---
+        function changeTab(status, label) { 
+            currentTab = status; 
+            currentLabel = label;
+            
+            // Save state so Refresh doesn't break it
+            localStorage.setItem('last_tab', status);
+            localStorage.setItem('last_label', label);
+            
+            document.getElementById('view-title').innerText = label; 
+            document.getElementById('add-form').style.display = (status === 'to-read') ? 'block' : 'none'; 
+            
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('tab-active')); 
+            const activeBtn = document.getElementById(`btn-${status}`);
+            if(activeBtn) activeBtn.classList.add('tab-active'); 
+            
+            updateUI(); 
+        }
+
         function setupToken() { let t = prompt("Token:", GITHUB_CONFIG.token); if(t){ GITHUB_CONFIG.token = t.trim(); localStorage.setItem('gh_token', t.trim()); loadData(); } }
         function downloadBackup() { const blob = new Blob([JSON.stringify(myContent, null, 2)], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `kanban_backup.json`; a.click(); }
 
         loadData();
-        changeTab('to-read');
+        // Load the saved tab or default to 'to-read'
+        changeTab(currentTab, currentLabel);
     </script>
 </body>
 </html>
