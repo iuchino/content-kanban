@@ -3,67 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Content Strategy</title>
+    <title>Strategy Kanban</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { padding-bottom: 80px; } /* Space for bottom nav */
-        .tab-active { color: #2563eb; border-top: 3px solid #2563eb; }
-        .hidden { display: none; }
+        body { padding-bottom: 90px; font-family: -apple-system, system-ui, sans-serif; }
+        .tab-active { color: #2563eb; border-top: 3px solid #2563eb; background-color: #f8fafc; }
+        .cat-technical { border-left: 4px solid #3b82f6; } /* Blue */
+        .cat-finance { border-left: 4px solid #10b981; }   /* Green */
+        .cat-religion { border-left: 4px solid #8b5cf6; }  /* Purple */
+        .cat-howto { border-left: 4px solid #f59e0b; }     /* Orange */
+        .cat-entertainment { border-left: 4px solid #ef4444; } /* Red */
     </style>
 </head>
 <body class="bg-gray-50">
 
     <header class="bg-white p-4 shadow-sm sticky top-0 z-10 flex justify-between items-center">
-        <h1 id="view-title" class="text-xl font-bold text-gray-800">To Read</h1>
-        <div class="flex gap-2">
-             <button onclick="saveToGitHub()" class="bg-green-600 text-white p-2 rounded-full shadow-md">💾</button>
-             <button onclick="setupToken()" class="bg-gray-100 p-2 rounded-full">🔑</button>
+        <div>
+            <h1 id="view-title" class="text-xl font-bold text-gray-800">予定リスト</h1>
+            <p id="sync-status" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Checking Sync...</p>
+        </div>
+        <div class="flex gap-3">
+             <button onclick="saveToGitHub()" class="bg-green-600 text-white p-2.5 rounded-full shadow-lg active:scale-90 transition">💾</button>
+             <button onclick="setupToken()" class="bg-gray-100 p-2.5 rounded-full active:scale-90 transition">🔑</button>
         </div>
     </header>
 
     <main class="p-4">
         <div id="add-form" class="mb-6">
-            <div class="bg-white p-4 rounded-xl shadow-sm border border-gray-100">
-                <input id="new-title" type="text" placeholder="タイトルを入力..." class="w-full border-b p-2 mb-3 outline-none">
-                <div class="flex justify-between items-center">
-                    <select id="new-type" class="bg-gray-100 p-2 rounded text-sm">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                <input id="new-title" type="text" placeholder="タイトル..." class="w-full border-b border-gray-100 p-2 mb-3 outline-none text-lg">
+                <input id="new-link" type="url" placeholder="URL (Amazon, etc)" class="w-full border-b border-gray-100 p-2 mb-4 outline-none text-sm text-blue-500">
+                
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <select id="new-type" class="bg-gray-50 p-2 rounded-lg text-xs font-bold border-none">
                         <option value="Book">📚 本</option>
                         <option value="Movie">🎬 映画</option>
                         <option value="Drama">📺 ドラマ</option>
                     </select>
-                    <button onclick="addNewItem()" class="bg-blue-600 text-white px-6 py-2 rounded-lg font-bold">追加</button>
+                    <select id="new-goal" class="bg-gray-50 p-2 rounded-lg text-xs font-bold border-none">
+                        <option value="technical">💻 Technical</option>
+                        <option value="finance">💰 Finance</option>
+                        <option value="religion">🙏 Strategy/Rel</option>
+                        <option value="howto">🛠 How-To</option>
+                        <option value="entertainment">🎭 Entertainment</option>
+                    </select>
                 </div>
+                <button onclick="addNewItem()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md">リストに追加</button>
             </div>
         </div>
 
-        <div id="list-container" class="space-y-4">
-            </div>
+        <div id="list-container" class="space-y-4"></div>
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-16 shadow-lg z-20">
-        <button onclick="changeTab('to-read')" class="nav-btn flex flex-col items-center flex-1 py-2 text-gray-400" id="btn-to-read">
-            <span class="text-xl">📅</span>
-            <span class="text-[10px] font-bold">予定</span>
-        </button>
-        <button onclick="changeTab('progress')" class="nav-btn flex flex-col items-center flex-1 py-2 text-gray-400" id="btn-progress">
-            <span class="text-xl">📖</span>
-            <span class="text-[10px] font-bold">進行中</span>
-        </button>
-        <button onclick="changeTab('complete')" class="nav-btn flex flex-col items-center flex-1 py-2 text-gray-400" id="btn-complete">
-            <span class="text-xl">✅</span>
-            <span class="text-[10px] font-bold">完了</span>
-        </button>
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-20 shadow-lg z-20">
+        <button onclick="changeTab('to-read')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-to-read"><span class="text-xl">📅</span><span class="text-[10px] font-black">予定</span></button>
+        <button onclick="changeTab('progress')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-progress"><span class="text-xl">📖</span><span class="text-[10px] font-black">進行中</span></button>
+        <button onclick="changeTab('complete')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-complete"><span class="text-xl">✅</span><span class="text-[10px] font-black">完了</span></button>
     </nav>
 
     <script>
         let myContent = [];
         let currentTab = 'to-read';
-        let GITHUB_CONFIG = { 
-            token: localStorage.getItem('gh_token') || '', 
-            owner: 'iuchino', repo: 'content-kanban', path: 'data.json' 
-        };
+        let GITHUB_CONFIG = { token: localStorage.getItem('gh_token') || '', owner: 'iuchino', repo: 'content-kanban', path: 'data.json' };
 
         async function loadData() {
+            document.getElementById('sync-status').innerText = "Syncing...";
             try {
                 const res = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`, {
                     headers: GITHUB_CONFIG.token ? { 'Authorization': `token ${GITHUB_CONFIG.token}` } : {}
@@ -72,47 +76,33 @@
                     const data = await res.json();
                     myContent = JSON.parse(decodeURIComponent(escape(atob(data.content))));
                     renderBoard();
+                    document.getElementById('sync-status').innerText = "Cloud Sync Active";
                 }
-            } catch (e) { console.error(e); }
-        }
-
-        function changeTab(tab) {
-            currentTab = tab;
-            const titles = {'to-read': '予定リスト', 'progress': '現在進行中', 'complete': '完了アーカイブ'};
-            document.getElementById('view-title').innerText = titles[tab];
-            
-            // Toggle form visibility
-            document.getElementById('add-form').style.display = (tab === 'to-read') ? 'block' : 'none';
-            
-            // Update Nav UI
-            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('tab-active'));
-            document.getElementById(`btn-${tab}`).classList.add('tab-active');
-            
-            renderBoard();
+            } catch (e) { document.getElementById('sync-status').innerText = "Offline"; }
         }
 
         function renderBoard() {
             const container = document.getElementById('list-container');
             container.innerHTML = '';
-            
             const filtered = myContent.filter(item => item.status === currentTab);
             
             filtered.forEach(item => {
                 const card = document.createElement('div');
-                card.className = 'bg-white p-4 rounded-xl shadow-sm border border-gray-100';
+                const goalClass = `cat-${item.goal || 'entertainment'}`;
+                card.className = `bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative ${goalClass}`;
                 card.innerHTML = `
                     <div class="flex justify-between items-center mb-2">
-                        <span class="text-[10px] font-bold text-blue-500 bg-blue-50 px-2 py-0.5 rounded uppercase">${item.type}</span>
-                        <button onclick="deleteItem(${item.id})" class="text-gray-300 text-xs">削除</button>
+                        <span class="text-[9px] font-black text-gray-400 uppercase tracking-tighter">${item.type} | ${item.goal || 'General'}</span>
+                        <button onclick="deleteItem(${item.id})" class="text-gray-300">✕</button>
                     </div>
-                    <h3 class="font-bold text-gray-800 mb-2">${item.title}</h3>
-                    <textarea onchange="updateNote(${item.id}, this.value)" placeholder="メモを残す..." class="w-full text-sm p-3 bg-gray-50 rounded-lg h-24 mb-3 border-none outline-none focus:ring-1 focus:ring-blue-200">${item.note || ''}</textarea>
-                    <div class="flex justify-between items-center">
+                    <h3 class="font-bold text-gray-800 text-md mb-1 leading-tight">${item.title}</h3>
+                    ${item.url ? `<a href="${item.url}" target="_blank" class="text-[10px] text-blue-500 underline mb-3 block">🔗 Open Link</a>` : ''}
+                    <textarea onchange="updateNote(${item.id}, this.value)" placeholder="Notes..." class="w-full text-xs p-3 bg-gray-50 rounded-xl h-24 mb-3 border-none outline-none">${item.note || ''}</textarea>
+                    <div class="flex gap-2">
                         ${currentTab !== 'complete' ? 
-                            `<button onclick="moveItem(${item.id})" class="w-full bg-blue-50 text-blue-600 font-bold py-2 rounded-lg text-sm">次へ進める →</button>` : 
-                            `<select onchange="updateRating(${item.id}, this.value)" class="bg-yellow-50 text-yellow-700 font-bold py-2 px-4 rounded-lg text-sm">
-                                <option value="0">評価なし</option>
-                                ${[1,2,3,4,5].map(n => `<option value="${n}" ${item.rating == n ? 'selected' : ''}>⭐ ${n}</option>`).join('')}
+                            `<button onclick="moveItem(${item.id})" class="w-full bg-blue-50 text-blue-600 font-bold py-2.5 rounded-xl text-xs">NEXT →</button>` : 
+                            `<select onchange="updateRating(${item.id}, this.value)" class="w-full bg-yellow-50 text-yellow-700 font-bold py-2.5 px-4 rounded-xl text-xs border-none">
+                                <option value="0">Rating</option>${[1,2,3,4,5].map(n => `<option value="${n}" ${item.rating == n ? 'selected' : ''}>⭐ ${n} Stars</option>`).join('')}
                             </select>`
                         }
                     </div>
@@ -121,41 +111,48 @@
             });
         }
 
-        // Logic functions (Add, Move, Delete, Save) are same as before
         function addNewItem() {
             const title = document.getElementById('new-title').value;
             if(!title) return;
-            myContent.push({ id: Date.now(), title, type: document.getElementById('new-type').value, status: 'to-read', note: '', rating: 0 });
+            myContent.push({ 
+                id: Date.now(), 
+                title, 
+                url: document.getElementById('new-link').value, 
+                type: document.getElementById('new-type').value, 
+                goal: document.getElementById('new-goal').value,
+                status: 'to-read', note: '', rating: 0 
+            });
             document.getElementById('new-title').value = '';
+            document.getElementById('new-link').value = '';
+            renderBoard();
+        }
+
+        // Standard logic remains the same...
+        function changeTab(tab) {
+            currentTab = tab;
+            document.getElementById('view-title').innerText = {'to-read': '予定リスト', 'progress': '進行中', 'complete': '完了リスト'}[tab];
+            document.getElementById('add-form').style.display = (tab === 'to-read') ? 'block' : 'none';
+            document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('tab-active'));
+            document.getElementById(`btn-${tab}`).classList.add('tab-active');
             renderBoard();
         }
         function updateNote(id, val) { myContent.find(i => i.id === id).note = val; }
         function updateRating(id, val) { myContent.find(i => i.id === id).rating = parseInt(val); renderBoard(); }
-        function moveItem(id) {
-            const item = myContent.find(i => i.id === id);
-            item.status = (item.status === 'to-read') ? 'progress' : 'complete';
-            renderBoard();
-        }
-        function deleteItem(id) { if(confirm("削除しますか？")) { myContent = myContent.filter(i => i.id !== id); renderBoard(); } }
-        function setupToken() {
-            const t = prompt("GitHub Token:", GITHUB_CONFIG.token);
-            if(t !== null) { GITHUB_CONFIG.token = t; localStorage.setItem('gh_token', t); loadData(); }
-        }
+        function moveItem(id) { const item = myContent.find(i => i.id === id); item.status = (item.status === 'to-read') ? 'progress' : 'complete'; renderBoard(); }
+        function deleteItem(id) { if(confirm("削除？")) { myContent = myContent.filter(i => i.id !== id); renderBoard(); } }
+        function setupToken() { const t = prompt("Token:", GITHUB_CONFIG.token); if(t !== null) { GITHUB_CONFIG.token = t; localStorage.setItem('gh_token', t); loadData(); } }
         async function saveToGitHub() {
-            if(!GITHUB_CONFIG.token) { alert("Tokenを設定してください"); return; }
+            if(!GITHUB_CONFIG.token) { alert("No Token"); return; }
             const content = btoa(unescape(encodeURIComponent(JSON.stringify(myContent, null, 2))));
             const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
             const getRes = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token}` }});
             const fileData = getRes.ok ? await getRes.json() : null;
             const res = await fetch(url, {
-                method: 'PUT',
-                headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: "Update via App", content, sha: fileData ? fileData.sha : null })
+                method: 'PUT', headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: "Update", content, sha: fileData ? fileData.sha : null })
             });
-            if(res.ok) alert("保存完了！");
-            else alert("保存エラー");
+            if(res.ok) alert("Saved!"); else alert("Error");
         }
-
         loadData();
         changeTab('to-read');
     </script>
