@@ -1,3 +1,39 @@
 [
-  { "id": 1, "title": "Welcome to your Kanban", "type": "Book", "status": "to-read" }
+  {
+    "id": 1001,
+    "title": "Generative AI Foundations",
+    "type": "Book",
+    "status": "progress",
+    "note": "Learning how to better integrate Gemini into daily workflows."
+  },
+  {
+    "id": 1002,
+    "title": "DevSecOps Handbook",
+    "type": "Book",
+    "status": "to-read",
+    "note": "Professional development for OpenText/ALM alignment."
+  },
+  {
+    "id": 1003,
+    "title": "Atomic Habits (複利で伸びる1つの習慣)",
+    "type": "Book",
+    "status": "complete",
+    "rating": 5,
+    "note": "Excellent for gym and study consistency."
+  },
+  {
+    "id": 1004,
+    "title": "Oppenheimer",
+    "type": "Movie",
+    "status": "to-read",
+    "note": "Highly rated historical drama."
+  },
+  {
+    "id": 1005,
+    "title": "The Big Short (マネー・ショート)",
+    "type": "Movie",
+    "status": "complete",
+    "rating": 4,
+    "note": "Insightful for financial strategy and market risks."
+  }
 ]
