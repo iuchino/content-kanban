@@ -6,7 +6,7 @@
     <title>Strategy Kanban</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { padding-bottom: 90px; font-family: -apple-system, system-ui, sans-serif; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
+        body { padding-bottom: 100px; font-family: -apple-system, system-ui, sans-serif; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
         .tab-active { color: #2563eb; border-top: 3px solid #2563eb; background-color: #f8fafc; }
         .cat-technical { border-left: 5px solid #3b82f6; } 
         .cat-finance { border-left: 5px solid #10b981; }   
@@ -19,11 +19,14 @@
         .swipe-content { transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1); background: white; z-index: 2; position: relative; }
         .delete-action { 
             position: absolute; right: 0; top: 0; 
-            height: 70px; /* HEIGHT RESTRICTED to Title area only */
-            width: 80px; display: flex; align-items: center; justify-content: center;
+            height: 70px; width: 80px; display: flex; align-items: center; justify-content: center;
             background: #ef4444; color: white; font-weight: 800; font-size: 14px; 
             z-index: 1; border-radius: 0 1.25rem 0 1.25rem;
         }
+        
+        /* Nav Counter Badge Style */
+        .nav-counter { font-size: 10px; font-weight: 900; color: #64748b; margin-top: 2px; }
+        .tab-active .nav-counter { color: #2563eb; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
@@ -37,7 +40,7 @@
             </div>
             <div class="flex gap-2">
                  <button onclick="downloadBackup()" class="bg-blue-50 text-blue-600 p-2.5 rounded-full">📥</button>
-                 <button onclick="saveToGitHub()" class="bg-green-600 text-white p-2.5 rounded-full shadow-lg active:scale-95">💾</button>
+                 <button onclick="saveToGitHub()" class="bg-green-600 text-white p-2.5 rounded-full shadow-lg">💾</button>
                  <button onclick="setupToken()" class="bg-gray-100 p-2.5 rounded-full">🔑</button>
             </div>
         </div>
@@ -59,15 +62,21 @@
         <div id="list-container"></div>
     </main>
 
-    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-20 shadow-lg z-20">
-        <button onclick="changeTab('to-read')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-to-read">
-            <span class="text-xl">📅</span><span class="text-[10px] font-black uppercase">予定 <span id="count-to-read">(0)</span></span>
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-24 shadow-lg z-20 pb-4">
+        <button onclick="changeTab('to-read')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full" id="btn-to-read">
+            <span class="text-xl">📅</span>
+            <span class="text-[10px] font-black uppercase tracking-tighter">予定</span>
+            <span id="count-to-read" class="nav-counter">0</span>
         </button>
-        <button onclick="changeTab('progress')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-progress">
-            <span class="text-xl">📖</span><span class="text-[10px] font-black uppercase">進行中 <span id="count-progress">(0)</span></span>
+        <button onclick="changeTab('progress')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full" id="btn-progress">
+            <span class="text-xl">📖</span>
+            <span class="text-[10px] font-black uppercase tracking-tighter">進行中</span>
+            <span id="count-progress" class="nav-counter">0</span>
         </button>
-        <button onclick="changeTab('complete')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-complete">
-            <span class="text-xl">✅</span><span class="text-[10px] font-black uppercase">完了 <span id="count-complete">(0)</span></span>
+        <button onclick="changeTab('complete')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full" id="btn-complete">
+            <span class="text-xl">✅</span>
+            <span class="text-[10px] font-black uppercase tracking-tighter">完了</span>
+            <span id="count-complete" class="nav-counter">0</span>
         </button>
     </nav>
 
@@ -77,11 +86,10 @@
         let currentTab = 'to-read';
         let touchStartX = 0;
 
-        function updateUI() {
-            document.getElementById('count-to-read').innerText = `(${myContent.filter(i => i.status === 'to-read').length})`;
-            document.getElementById('count-progress').innerText = `(${myContent.filter(i => i.status === 'progress').length})`;
-            document.getElementById('count-complete').innerText = `(${myContent.filter(i => i.status === 'complete').length})`;
-            renderBoard();
+        function updateNavCounters() {
+            document.getElementById('count-to-read').innerText = myContent.filter(i => i.status === 'to-read').length;
+            document.getElementById('count-progress').innerText = myContent.filter(i => i.status === 'progress').length;
+            document.getElementById('count-complete').innerText = myContent.filter(i => i.status === 'complete').length;
         }
 
         async function loadData() {
@@ -94,7 +102,8 @@
                 if (res.ok) {
                     const data = await res.json();
                     myContent = JSON.parse(decodeURIComponent(escape(atob(data.content))));
-                    updateUI();
+                    updateNavCounters();
+                    renderBoard();
                     statusEl.innerText = "CLOUD SYNC ACTIVE";
                     statusEl.className = "text-[9px] text-green-600 font-bold uppercase mt-1";
                     document.getElementById('last-saved').innerText = `Sync: ${new Date().getHours()}:${new Date().getMinutes().toString().padStart(2, '0')}`;
@@ -159,14 +168,15 @@
                 if (myContent.filter(i => i.status === 'progress').length >= 4) { alert("進行中は最大4つまでです"); return; }
                 item.status = 'progress';
             } else if (item.status === 'progress') { item.status = 'complete'; }
-            updateUI();
+            updateNavCounters();
+            renderBoard();
         }
-        function moveBack(id) { myContent.find(i => i.id === id).status = 'to-read'; updateUI(); }
-        function addNewItem() { const title = document.getElementById('new-title').value; if(!title) return; myContent.push({ id: Date.now(), title, url: document.getElementById('new-link').value, type: document.getElementById('new-type').value, goal: document.getElementById('new-goal').value, status: 'to-read', note: '', rating: 0 }); document.getElementById('new-title').value = ''; updateUI(); }
+        function moveBack(id) { myContent.find(i => i.id === id).status = 'to-read'; updateNavCounters(); renderBoard(); }
+        function addNewItem() { const title = document.getElementById('new-title').value; if(!title) return; myContent.push({ id: Date.now(), title, url: document.getElementById('new-link').value, type: document.getElementById('new-type').value, goal: document.getElementById('new-goal').value, status: 'to-read', note: '', rating: 0 }); document.getElementById('new-title').value = ''; updateNavCounters(); renderBoard(); }
         function changeTab(tab) { currentTab = tab; document.getElementById('view-title').innerText = {'to-read':'予定リスト','progress':'進行中','complete':'完了リスト'}[tab]; document.getElementById('add-form').style.display = (tab==='to-read')?'block':'none'; document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('tab-active')); document.getElementById(`btn-${tab}`).classList.add('tab-active'); renderBoard(); }
         function updateNote(id, val) { myContent.find(i => i.id === id).note = val; }
-        function updateRating(id, val) { myContent.find(i => i.id === id).rating = parseInt(val); updateUI(); }
-        function deleteItem(id) { if(confirm("削除しますか？")) { myContent = myContent.filter(i => i.id !== id); updateUI(); } }
+        function updateRating(id, val) { myContent.find(i => i.id === id).rating = parseInt(val); updateNavCounters(); renderBoard(); }
+        function deleteItem(id) { if(confirm("削除しますか？")) { myContent = myContent.filter(i => i.id !== id); updateNavCounters(); renderBoard(); } }
         function setupToken() { const t = prompt("GitHub Token:", GITHUB_CONFIG.token); if(t !== null) { GITHUB_CONFIG.token = t.trim(); localStorage.setItem('gh_token', t.trim()); loadData(); } }
         function downloadBackup() { const blob = new Blob([JSON.stringify(myContent, null, 2)], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `kanban_backup.json`; a.click(); }
 
