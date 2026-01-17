@@ -53,7 +53,7 @@
                     <select id="new-type" class="bg-gray-50 p-2 rounded-lg text-xs font-bold border-none"><option value="Book">📚 本</option><option value="Movie">🎬 映画</option><option value="Drama">📺 ドラマ</option></select>
                     <select id="new-goal" class="bg-gray-50 p-2 rounded-lg text-xs font-bold border-none"><option value="technical">💻 Technical</option><option value="finance">💰 Finance</option><option value="religion">🙏 Strategy/Rel</option><option value="howto">🛠 How-To</option><option value="entertainment">🎭 Entertainment</option></select>
                 </div>
-                <button onclick="addNewItem()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md active:bg-blue-700 transition">リストに追加</button>
+                <button onclick="addNewItem()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md active:bg-blue-700 transition transform active:scale-[0.98]">リストに追加</button>
             </div>
         </div>
         <div id="list-container" class="space-y-4"></div>
@@ -75,13 +75,7 @@
     </nav>
 
     <script>
-        const GITHUB_CONFIG = { 
-            token: localStorage.getItem('gh_token') || '', 
-            owner: 'iuchino', 
-            repo: 'content-kanban', 
-            path: 'data.json' 
-        };
-
+        const GITHUB_CONFIG = { token: localStorage.getItem('gh_token') || '', owner: 'iuchino', repo: 'content-kanban', path: 'data.json' };
         let myContent = [];
         let currentTab = 'to-read';
         let touchStartX = 0;
@@ -99,9 +93,7 @@
             statusEl.innerText = "CONNECTING...";
             try {
                 const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}?cb=${Date.now()}`;
-                const res = await fetch(url, {
-                    headers: { 'Authorization': `Bearer ${GITHUB_CONFIG.token.trim()}`, 'Accept': 'application/vnd.github.v3+json' }
-                });
+                const res = await fetch(url, { headers: { 'Authorization': `Bearer ${GITHUB_CONFIG.token.trim()}`, 'Accept': 'application/vnd.github.v3+json' } });
                 if (res.ok) {
                     const data = await res.json();
                     myContent = JSON.parse(decodeURIComponent(escape(atob(data.content))));
@@ -118,34 +110,22 @@
             document.getElementById('sync-status').innerText = "UPLOADING...";
             try {
                 const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
-                const getRes = await fetch(url + `?cb=${Date.now()}`, { 
-                    headers: { 'Authorization': `Bearer ${GITHUB_CONFIG.token.trim()}` }
-                });
-                if(!getRes.ok) throw new Error("Fetch failed");
+                const getRes = await fetch(url + `?cb=${Date.now()}`, { headers: { 'Authorization': `Bearer ${GITHUB_CONFIG.token.trim()}` } });
                 const fileData = await getRes.json();
                 const content = btoa(unescape(encodeURIComponent(JSON.stringify(myContent, null, 2))));
-
                 const res = await fetch(url, {
                     method: 'PUT',
-                    headers: { 
-                        'Authorization': `Bearer ${GITHUB_CONFIG.token.trim()}`,
-                        'Content-Type': 'application/json'
-                    },
+                    headers: { 'Authorization': `Bearer ${GITHUB_CONFIG.token.trim()}`, 'Content-Type': 'application/json' },
                     body: JSON.stringify({ message: "Sync Update", content, sha: fileData.sha })
                 });
-
-                if(res.ok) {
-                    alert("✅ Saved to GitHub");
-                    loadData();
-                } else { alert("Save Error"); }
-            } catch (e) { alert("Network Error"); }
+                if(res.ok) { alert("✅ 保存完了"); loadData(); }
+            } catch (e) { alert("Save Error"); }
         }
 
         function renderBoard() {
             const container = document.getElementById('list-container');
             container.innerHTML = '';
             const search = document.getElementById('search-input').value.toLowerCase();
-            
             myContent.filter(item => item.status === currentTab && item.title.toLowerCase().includes(search))
             .forEach(item => {
                 const card = document.createElement('div');
@@ -171,6 +151,29 @@
 
         function tS(e) { touchStartX = e.touches[0].clientX; }
         function tM(e, el) { let d = touchStartX - e.touches[0].clientX; if(d > 60) el.style.transform = "translateX(-80px)"; else if(d < -20) el.style.transform = "translateX(0px)"; }
+        
+        function addNewItem() {
+            const titleInput = document.getElementById('new-title');
+            const linkInput = document.getElementById('new-link');
+            if(!titleInput.value) return;
+            
+            myContent.push({
+                id: Date.now(),
+                title: titleInput.value,
+                url: linkInput.value,
+                type: document.getElementById('new-type').value,
+                goal: document.getElementById('new-goal').value,
+                status: 'to-read',
+                note: '',
+                rating: 0
+            });
+            
+            // --- FIX: Reset the form fields ---
+            titleInput.value = '';
+            linkInput.value = '';
+            updateUI();
+        }
+
         function moveItem(id) { let i = myContent.find(x=>x.id===id); if(i.status==='to-read'){ if(myContent.filter(x=>x.status==='progress').length>=4){alert("Limit 4!"); return;} i.status='progress'; } else { i.status='complete'; } updateUI(); }
         function moveBack(id) { myContent.find(x=>x.id===id).status='to-read'; updateUI(); }
         function updateNote(id, v) { myContent.find(x=>x.id===id).note = v; }
@@ -178,8 +181,7 @@
         function deleteItem(id) { if(confirm("削除しますか？")) { myContent = myContent.filter(x=>x.id!==id); updateUI(); } }
         function changeTab(t) { currentTab = t; document.getElementById('add-form').style.display = (t==='to-read')?'block':'none'; document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('tab-active')); document.getElementById(`btn-${t}`).classList.add('tab-active'); updateUI(); }
         function setupToken() { let t = prompt("Token:", GITHUB_CONFIG.token); if(t){ GITHUB_CONFIG.token = t.trim(); localStorage.setItem('gh_token', t.trim()); loadData(); } }
-        function downloadBackup() { let b = new Blob([JSON.stringify(myContent, null, 2)], {type: 'application/json'}); let a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `kanban_backup.json`; a.click(); }
-        function addNewItem() { let t = document.getElementById('new-title').value; if(!t) return; myContent.push({id:Date.now(), title:t, url:document.getElementById('new-link').value, type:document.getElementById('new-type').value, goal:document.getElementById('new-goal').value, status:'to-read', note:'', rating:0}); document.getElementById('new-title').value=''; updateUI(); }
+        function downloadBackup() { const blob = new Blob([JSON.stringify(myContent, null, 2)], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `kanban_backup.json`; a.click(); }
 
         loadData();
         changeTab('to-read');
