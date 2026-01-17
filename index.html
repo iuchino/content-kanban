@@ -6,13 +6,17 @@
     <title>Strategy Kanban</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body { padding-bottom: 90px; font-family: -apple-system, system-ui, sans-serif; }
+        body { padding-bottom: 90px; font-family: -apple-system, system-ui, sans-serif; overflow-x: hidden; }
         .tab-active { color: #2563eb; border-top: 3px solid #2563eb; background-color: #f8fafc; }
         .cat-technical { border-left: 5px solid #3b82f6; } 
         .cat-finance { border-left: 5px solid #10b981; }   
         .cat-religion { border-left: 5px solid #8b5cf6; }  
         .cat-howto { border-left: 5px solid #f59e0b; }     
-        .cat-entertainment { border-left: 5px solid #ef4444; } 
+        .cat-entertainment { border-left: 5px solid #ef4444; }
+        
+        .swipe-container { overflow: hidden; position: relative; border-radius: 1rem; }
+        .swipe-content { transition: transform 0.3s ease-out; position: relative; z-index: 2; background: white; }
+        .delete-btn-bg { position: absolute; right: 0; top: 0; bottom: 0; background: #ef4444; color: white; display: flex; align-items: center; padding: 0 20px; font-weight: bold; border-radius: 0 1rem 1rem 0; z-index: 1; }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900">
@@ -21,19 +25,16 @@
         <div class="flex justify-between items-center mb-2">
             <div>
                 <h1 id="view-title" class="text-xl font-bold leading-none">予定リスト</h1>
-                <p id="sync-status" class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Ready</p>
+                <p id="sync-status" class="text-[9px] text-gray-400 font-bold uppercase tracking-widest mt-1">Checking Sync...</p>
                 <p id="last-saved" class="text-[8px] text-blue-400 font-medium">Last Sync: ---</p>
             </div>
             <div class="flex gap-2">
-                 <button onclick="downloadBackup()" title="Backup" class="bg-blue-50 text-blue-600 p-2.5 rounded-full active:scale-90">📥</button>
-                 <button onclick="saveToGitHub()" title="Save" class="bg-green-600 text-white p-2.5 rounded-full shadow-lg active:scale-90">💾</button>
-                 <button onclick="setupToken()" title="Settings" class="bg-gray-100 p-2.5 rounded-full active:scale-90">🔑</button>
+                 <button onclick="downloadBackup()" class="bg-blue-50 text-blue-600 p-2.5 rounded-full active:scale-90">📥</button>
+                 <button onclick="saveToGitHub()" class="bg-green-600 text-white p-2.5 rounded-full shadow-lg active:scale-90">💾</button>
+                 <button onclick="setupToken()" class="bg-gray-100 p-2.5 rounded-full active:scale-90">🔑</button>
             </div>
         </div>
-        <div class="relative">
-            <input id="search-input" type="text" oninput="renderBoard()" placeholder="検索..." class="w-full bg-gray-100 border-none rounded-lg p-2 text-sm pl-8 outline-none">
-            <span class="absolute left-2.5 top-2.5 text-gray-400 text-xs">🔍</span>
-        </div>
+        <input id="search-input" type="text" oninput="renderBoard()" placeholder="検索..." class="w-full bg-gray-100 border-none rounded-lg p-2 text-sm outline-none">
     </header>
 
     <main class="p-4">
@@ -60,6 +61,7 @@
     <script>
         let myContent = [];
         let currentTab = 'to-read';
+        let touchStartX = 0;
         let GITHUB_CONFIG = { token: localStorage.getItem('gh_token') || '', owner: 'iuchino', repo: 'content-kanban', path: 'data.json' };
 
         function updateTimestamp() {
@@ -68,8 +70,7 @@
         }
 
         async function loadData() {
-            if(!GITHUB_CONFIG.token) { document.getElementById('sync-status').innerText = "Set Token to Sync"; return; }
-            document.getElementById('sync-status').innerText = "Syncing...";
+            if(!GITHUB_CONFIG.token) return;
             try {
                 const res = await fetch(`https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`, {
                     headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Cache-Control': 'no-cache' }
@@ -81,30 +82,86 @@
                     document.getElementById('sync-status').innerText = "Cloud Sync Active";
                     updateTimestamp();
                 }
-            } catch (e) { document.getElementById('sync-status').innerText = "Offline Mode"; }
+            } catch (e) { document.getElementById('sync-status').innerText = "Sync Error"; }
         }
 
         function renderBoard() {
             const container = document.getElementById('list-container');
             const search = document.getElementById('search-input').value.toLowerCase();
             container.innerHTML = '';
+            
             const filtered = myContent.filter(item => {
                 const matchesTab = item.status === currentTab;
                 const matchesSearch = item.title.toLowerCase().includes(search) || (item.goal && item.goal.toLowerCase().includes(search));
                 return matchesTab && matchesSearch;
             });
+
             filtered.forEach(item => {
-                const card = document.createElement('div');
-                card.className = `bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative cat-${item.goal || 'entertainment'}`;
-                card.innerHTML = `<div class="flex justify-between items-center mb-2"><span class="text-[9px] font-black text-gray-400 uppercase">${item.type} | ${item.goal}</span><button onclick="deleteItem(${item.id})" class="text-gray-300 text-xs">✕</button></div><h3 class="font-bold text-gray-800 text-lg mb-1 leading-tight">${item.title}</h3>${item.url ? `<a href="${item.url}" target="_blank" class="text-[11px] text-blue-500 underline mb-3 block truncate">🔗 Open Link</a>` : ''}<textarea onchange="updateNote(${item.id}, this.value)" placeholder="メモ..." class="w-full text-sm p-3 bg-gray-50 rounded-xl h-28 mb-4 border-none outline-none">${item.note || ''}</textarea><div class="flex gap-2">${currentTab !== 'complete' ? `<button onclick="moveItem(${item.id})" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl text-sm shadow-md">NEXT →</button>` : `<select onchange="updateRating(${item.id}, this.value)" class="w-full bg-yellow-50 text-yellow-700 font-bold py-3 px-4 rounded-xl text-sm border-none outline-none"><option value="0">Rating</option>${[1,2,3,4,5].map(n => `<option value="${n}" ${item.rating == n ? 'selected' : ''}>⭐ ${n}</option>`).join('')}</select>`}</div>`;
-                container.appendChild(card);
+                const cardWrapper = document.createElement('div');
+                cardWrapper.className = 'swipe-container';
+                
+                cardWrapper.innerHTML = `
+                    <div class="delete-btn-bg" onclick="deleteItem(${item.id})">Delete</div>
+                    <div class="swipe-content bg-white p-5 shadow-sm border border-gray-100 relative cat-${item.goal || 'entertainment'}" 
+                         ontouchstart="handleTouchStart(event)" ontouchmove="handleTouchMove(event, this)">
+                        <div class="flex justify-between items-center mb-2">
+                            <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">${item.type} | ${item.goal}</span>
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-lg mb-1 leading-tight">${item.title}</h3>
+                        ${item.url ? `<a href="${item.url}" target="_blank" class="text-[11px] text-blue-500 underline mb-3 block truncate">🔗 Open Link</a>` : ''}
+                        <textarea onchange="updateNote(${item.id}, this.value)" placeholder="メモ..." class="w-full text-sm p-3 bg-gray-50 rounded-xl h-28 mb-4 border-none outline-none">${item.note || ''}</textarea>
+                        
+                        <div class="flex gap-2">
+                            ${currentTab === 'progress' ? 
+                                `<button onclick="moveBack(${item.id})" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm active:bg-gray-200">← 戻す</button>` : ''}
+                            
+                            ${currentTab !== 'complete' ? 
+                                `<button onclick="moveItem(${item.id})" class="flex-[2] bg-blue-600 text-white font-bold py-3 rounded-xl text-sm shadow-md active:bg-blue-700">NEXT →</button>` : 
+                                `<select onchange="updateRating(${item.id}, this.value)" class="w-full bg-yellow-50 text-yellow-700 font-bold py-3 px-4 rounded-xl text-sm border-none outline-none">
+                                    <option value="0">Rating</option>${[1,2,3,4,5].map(n => `<option value="${n}" ${item.rating == n ? 'selected' : ''}>⭐ ${n}</option>`).join('')}
+                                </select>`
+                            }
+                        </div>
+                    </div>
+                `;
+                container.appendChild(cardWrapper);
             });
+        }
+
+        function moveItem(id) {
+            const item = myContent.find(i => i.id === id);
+            if (item.status === 'to-read') {
+                const progressCount = myContent.filter(i => i.status === 'progress').length;
+                if (progressCount >= 4) {
+                    alert("WIP Limit reached! (進行中は4つまで)");
+                    return;
+                }
+                item.status = 'progress';
+            } else if (item.status === 'progress') {
+                item.status = 'complete';
+            }
+            renderBoard();
+        }
+
+        function moveBack(id) {
+            const item = myContent.find(i => i.id === id);
+            item.status = 'to-read';
+            renderBoard();
+        }
+
+        function handleTouchStart(e) { touchStartX = e.touches[0].clientX; }
+        function handleTouchMove(e, el) {
+            let touchX = e.touches[0].clientX;
+            let diff = touchStartX - touchX;
+            if (diff > 50) el.style.transform = `translateX(-80px)`;
+            else if (diff < -20) el.style.transform = `translateX(0px)`;
         }
 
         function downloadBackup() {
             const blob = new Blob([JSON.stringify(myContent, null, 2)], {type: 'application/json'});
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a'); a.href = url; a.download = `kanban_backup.json`; a.click();
+            const a = document.createElement('a');
+            a.href = URL.createObjectURL(blob);
+            a.download = `kanban_backup.json`; a.click();
         }
 
         function addNewItem() {
@@ -125,23 +182,23 @@
 
         function updateNote(id, val) { myContent.find(i => i.id === id).note = val; }
         function updateRating(id, val) { myContent.find(i => i.id === id).rating = parseInt(val); renderBoard(); }
-        function moveItem(id) { const item = myContent.find(i => i.id === id); item.status = (item.status === 'to-read') ? 'progress' : 'complete'; renderBoard(); }
         function deleteItem(id) { if(confirm("削除しますか？")) { myContent = myContent.filter(i => i.id !== id); renderBoard(); } }
         function setupToken() { const t = prompt("GitHub Token:", GITHUB_CONFIG.token); if(t !== null) { GITHUB_CONFIG.token = t; localStorage.setItem('gh_token', t); loadData(); } }
         
         async function saveToGitHub() {
             if(!GITHUB_CONFIG.token) { alert("Tokenを設定してください"); return; }
             document.getElementById('sync-status').innerText = "Uploading...";
-            const content = btoa(unescape(encodeURIComponent(JSON.stringify(myContent, null, 2))));
-            const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
-            const getRes = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token}` }});
-            const fileData = getRes.ok ? await getRes.json() : null;
-            const res = await fetch(url, {
-                method: 'PUT', headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: "Update via App", content, sha: fileData ? fileData.sha : null })
-            });
-            if(res.ok) { alert("保存完了！"); updateTimestamp(); document.getElementById('sync-status').innerText = "Cloud Sync Active"; }
-            else alert("Error saving.");
+            try {
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(myContent, null, 2))));
+                const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
+                const getRes = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Cache-Control': 'no-cache' }});
+                const fileData = await getRes.json();
+                const res = await fetch(url, {
+                    method: 'PUT', headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ message: "Update via Kanban App", content, sha: fileData.sha })
+                });
+                if(res.ok) { alert("✅ 保存完了！"); updateTimestamp(); document.getElementById('sync-status').innerText = "Cloud Sync Active"; }
+            } catch (e) { alert("Save Error"); }
         }
 
         loadData();
