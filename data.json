@@ -168,5 +168,15 @@
     "status": "to-read",
     "note": "Author: Benjamin Franklin",
     "rating": 0
+  },
+  {
+    "id": 1768659921277,
+    "title": "あかさたな",
+    "url": "qqwwwwww",
+    "type": "Book",
+    "goal": "technical",
+    "status": "to-read",
+    "note": "",
+    "rating": 0
   }
 ]
