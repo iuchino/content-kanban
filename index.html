@@ -22,7 +22,7 @@
             background: #ef4444; color: white; font-weight: 800; font-size: 14px; 
             z-index: 1; border-radius: 0 1.25rem 0 1.25rem;
         }
-        .nav-counter { font-size: 11px; font-weight: 900; color: #94a3b8; }
+        .nav-counter { font-size: 11px; font-weight: 900; color: #94a3b8; margin-top: 2px; }
         .tab-active .nav-counter { color: #2563eb; }
     </style>
 </head>
@@ -44,22 +44,37 @@
         <input id="search-input" type="text" oninput="renderBoard()" placeholder="検索..." class="w-full bg-gray-100 border-none rounded-xl p-3 text-sm outline-none">
     </header>
 
-    <main class="p-4" id="list-container"></main>
+    <main class="p-4">
+        <div id="add-form" class="mb-6">
+            <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
+                <input id="new-title" type="text" placeholder="タイトル..." class="w-full border-b border-gray-100 p-2 mb-3 outline-none text-lg font-bold">
+                <input id="new-link" type="url" placeholder="URL (Amazonなど)" class="w-full border-b border-gray-100 p-2 mb-4 outline-none text-xs text-blue-500">
+                <div class="grid grid-cols-2 gap-2 mb-4">
+                    <select id="new-type" class="bg-gray-50 p-2 rounded-lg text-xs font-bold border-none"><option value="Book">📚 本</option><option value="Movie">🎬 映画</option><option value="Drama">📺 ドラマ</option></select>
+                    <select id="new-goal" class="bg-gray-50 p-2 rounded-lg text-xs font-bold border-none"><option value="technical">💻 Technical</option><option value="finance">💰 Finance</option><option value="religion">🙏 Strategy/Rel</option><option value="howto">🛠 How-To</option><option value="entertainment">🎭 Entertainment</option></select>
+                </div>
+                <button onclick="addNewItem()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md active:bg-blue-700 transition">リストに追加</button>
+            </div>
+        </div>
+        <div id="list-container" class="space-y-4"></div>
+    </main>
 
     <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-24 shadow-lg z-20 pb-8">
         <button onclick="changeTab('to-read')" class="nav-btn flex flex-col items-center flex-1" id="btn-to-read">
-            <span class="text-xl">📅</span><span class="nav-counter" id="count-to-read">0</span>
+            <span class="text-xl">📅</span><span class="text-[10px] font-black uppercase">予定</span>
+            <span class="nav-counter" id="count-to-read">0</span>
         </button>
         <button onclick="changeTab('progress')" class="nav-btn flex flex-col items-center flex-1" id="btn-progress">
-            <span class="text-xl">📖</span><span class="nav-counter" id="count-progress">0</span>
+            <span class="text-xl">📖</span><span class="text-[10px] font-black uppercase">進行中</span>
+            <span class="nav-counter" id="count-progress">0</span>
         </button>
         <button onclick="changeTab('complete')" class="nav-btn flex flex-col items-center flex-1" id="btn-complete">
-            <span class="text-xl">✅</span><span class="nav-counter" id="count-complete">0</span>
+            <span class="text-xl">✅</span><span class="text-[10px] font-black uppercase">完了</span>
+            <span class="nav-counter" id="count-complete">0</span>
         </button>
     </nav>
 
     <script>
-        // --- ENSURE THESE MATCH GITHUB EXACTLY ---
         const GITHUB_CONFIG = { 
             token: localStorage.getItem('gh_token') || '', 
             owner: 'iuchino', 
@@ -80,7 +95,8 @@
 
         async function loadData() {
             if(!GITHUB_CONFIG.token) return;
-            document.getElementById('sync-status').innerText = "CONNECTING...";
+            const statusEl = document.getElementById('sync-status');
+            statusEl.innerText = "CONNECTING...";
             try {
                 const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}?cb=${Date.now()}`;
                 const res = await fetch(url, {
@@ -90,35 +106,30 @@
                     const data = await res.json();
                     myContent = JSON.parse(decodeURIComponent(escape(atob(data.content))));
                     updateUI();
-                    document.getElementById('sync-status').innerText = "CLOUD SYNC ACTIVE";
+                    statusEl.innerText = "CLOUD SYNC ACTIVE";
+                    statusEl.className = "text-[9px] text-green-600 font-bold uppercase mt-1";
                     document.getElementById('last-saved').innerText = `Sync: ${new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}`;
                 }
-            } catch (e) { document.getElementById('sync-status').innerText = "SYNC ERROR"; }
+            } catch (e) { statusEl.innerText = "SYNC ERROR"; }
         }
 
         async function saveToGitHub() {
             if(!GITHUB_CONFIG.token) { alert("Token required"); return; }
             document.getElementById('sync-status').innerText = "UPLOADING...";
-            
             try {
                 const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
-                
-                // Fetch fresh SHA
                 const getRes = await fetch(url + `?cb=${Date.now()}`, { 
                     headers: { 'Authorization': `Bearer ${GITHUB_CONFIG.token.trim()}` }
                 });
                 if(!getRes.ok) throw new Error("Fetch failed");
                 const fileData = await getRes.json();
-                
-                const jsonString = JSON.stringify(myContent, null, 2);
-                const content = btoa(unescape(encodeURIComponent(jsonString)));
+                const content = btoa(unescape(encodeURIComponent(JSON.stringify(myContent, null, 2))));
 
                 const res = await fetch(url, {
                     method: 'PUT',
                     headers: { 
                         'Authorization': `Bearer ${GITHUB_CONFIG.token.trim()}`,
-                        'Content-Type': 'application/json',
-                        'Accept': 'application/vnd.github.v3+json'
+                        'Content-Type': 'application/json'
                     },
                     body: JSON.stringify({ message: "Sync Update", content, sha: fileData.sha })
                 });
@@ -126,11 +137,8 @@
                 if(res.ok) {
                     alert("✅ Saved to GitHub");
                     loadData();
-                } else {
-                    const err = await res.json();
-                    alert(`Error: ${err.message}`);
-                }
-            } catch (e) { alert("Network Error: Check Connection"); }
+                } else { alert("Save Error"); }
+            } catch (e) { alert("Network Error"); }
         }
 
         function renderBoard() {
@@ -143,15 +151,18 @@
                 const card = document.createElement('div');
                 card.className = 'swipe-container';
                 card.innerHTML = `
-                    <div class="delete-action" onclick="deleteItem(${item.id})">DEL</div>
-                    <div class="swipe-content bg-white p-5 border-b cat-${item.goal || 'entertainment'}" ontouchstart="tS(event)" ontouchmove="tM(event, this)">
-                        <h3 class="font-bold text-gray-800 pr-10">${item.title}</h3>
-                        ${item.url ? `<a href="${item.url}" target="_blank" class="text-[10px] text-blue-500 underline truncate block my-1">🔗 Amazon Link</a>` : ''}
-                        <textarea onchange="updateNote(${item.id}, this.value)" class="w-full text-sm p-2 bg-gray-50 rounded mt-2 h-20 border-none outline-none">${item.note || ''}</textarea>
-                        <div class="flex gap-2 mt-2">
-                            ${currentTab==='progress' ? `<button onclick="moveBack(${item.id})" class="flex-1 bg-gray-100 text-[10px] py-2 rounded">← BACK</button>` : ''}
-                            ${currentTab!=='complete' ? `<button onclick="moveItem(${item.id})" class="flex-[2] bg-blue-600 text-white text-[10px] py-2 rounded font-bold">NEXT →</button>` : 
-                            `<select onchange="updateRating(${item.id}, this.value)" class="w-full bg-yellow-50 text-[10px] py-2 rounded"><option value="0">Rating</option>${[1,2,3,4,5].map(n=>`<option value="${n}" ${item.rating==n?'selected':''}>⭐ ${n}</option>`).join('')}</select>`}
+                    <div class="delete-action" onclick="deleteItem(${item.id})">削除</div>
+                    <div class="swipe-content bg-white p-5 border border-gray-100 cat-${item.goal || 'entertainment'}" ontouchstart="tS(event)" ontouchmove="tM(event, this)">
+                        <div class="flex justify-between items-center mb-1">
+                            <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">${item.type} | ${item.goal}</span>
+                        </div>
+                        <h3 class="font-bold text-gray-800 text-lg mb-1 leading-tight pr-10">${item.title}</h3>
+                        ${item.url ? `<a href="${item.url}" target="_blank" class="text-[11px] text-blue-500 underline mb-3 block truncate">🔗 リソースを開く</a>` : ''}
+                        <textarea onchange="updateNote(${item.id}, this.value)" placeholder="メモ..." class="w-full text-sm p-3 bg-gray-50 rounded-xl h-28 mb-4 border-none outline-none focus:ring-1 focus:ring-blue-100">${item.note || ''}</textarea>
+                        <div class="flex gap-2">
+                            ${currentTab==='progress' ? `<button onclick="moveBack(${item.id})" class="flex-1 bg-gray-100 text-gray-600 font-bold py-3 rounded-xl text-sm">← 戻す</button>` : ''}
+                            ${currentTab!=='complete' ? `<button onclick="moveItem(${item.id})" class="flex-[2] bg-blue-600 text-white font-bold py-3 rounded-xl text-sm shadow-md">NEXT →</button>` : 
+                            `<select onchange="updateRating(${item.id}, this.value)" class="w-full bg-yellow-50 text-yellow-700 font-bold py-3 px-4 rounded-xl text-sm border-none"><option value="0">Rating</option>${[1,2,3,4,5].map(n=>`<option value="${n}" ${item.rating==n?'selected':''}>⭐ ${n}</option>`).join('')}</select>`}
                         </div>
                     </div>`;
                 container.appendChild(card);
@@ -164,8 +175,8 @@
         function moveBack(id) { myContent.find(x=>x.id===id).status='to-read'; updateUI(); }
         function updateNote(id, v) { myContent.find(x=>x.id===id).note = v; }
         function updateRating(id, v) { myContent.find(x=>x.id===id).rating = parseInt(v); updateUI(); }
-        function deleteItem(id) { if(confirm("Delete?")) { myContent = myContent.filter(x=>x.id!==id); updateUI(); } }
-        function changeTab(t) { currentTab = t; document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('tab-active')); document.getElementById(`btn-${t}`).classList.add('tab-active'); updateUI(); }
+        function deleteItem(id) { if(confirm("削除しますか？")) { myContent = myContent.filter(x=>x.id!==id); updateUI(); } }
+        function changeTab(t) { currentTab = t; document.getElementById('add-form').style.display = (t==='to-read')?'block':'none'; document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('tab-active')); document.getElementById(`btn-${t}`).classList.add('tab-active'); updateUI(); }
         function setupToken() { let t = prompt("Token:", GITHUB_CONFIG.token); if(t){ GITHUB_CONFIG.token = t.trim(); localStorage.setItem('gh_token', t.trim()); loadData(); } }
         function downloadBackup() { let b = new Blob([JSON.stringify(myContent, null, 2)], {type: 'application/json'}); let a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = `kanban_backup.json`; a.click(); }
         function addNewItem() { let t = document.getElementById('new-title').value; if(!t) return; myContent.push({id:Date.now(), title:t, url:document.getElementById('new-link').value, type:document.getElementById('new-type').value, goal:document.getElementById('new-goal').value, status:'to-read', note:'', rating:0}); document.getElementById('new-title').value=''; updateUI(); }
