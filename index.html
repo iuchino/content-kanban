@@ -8,23 +8,30 @@
     <style>
         body { padding-bottom: 90px; font-family: -apple-system, system-ui, sans-serif; }
         .tab-active { color: #2563eb; border-top: 3px solid #2563eb; background-color: #f8fafc; }
-        .cat-technical { border-left: 4px solid #3b82f6; } /* Blue */
-        .cat-finance { border-left: 4px solid #10b981; }   /* Green */
-        .cat-religion { border-left: 4px solid #8b5cf6; }  /* Purple */
-        .cat-howto { border-left: 4px solid #f59e0b; }     /* Orange */
-        .cat-entertainment { border-left: 4px solid #ef4444; } /* Red */
+        .cat-technical { border-left: 5px solid #3b82f6; } 
+        .cat-finance { border-left: 5px solid #10b981; }   
+        .cat-religion { border-left: 5px solid #8b5cf6; }  
+        .cat-howto { border-left: 5px solid #f59e0b; }     
+        .cat-entertainment { border-left: 5px solid #ef4444; } 
     </style>
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 text-gray-900">
 
-    <header class="bg-white p-4 shadow-sm sticky top-0 z-10 flex justify-between items-center">
-        <div>
-            <h1 id="view-title" class="text-xl font-bold text-gray-800">予定リスト</h1>
-            <p id="sync-status" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest">Checking Sync...</p>
+    <header class="bg-white p-4 shadow-sm sticky top-0 z-30">
+        <div class="flex justify-between items-center mb-3">
+            <div>
+                <h1 id="view-title" class="text-xl font-bold leading-none">予定リスト</h1>
+                <p id="sync-status" class="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-1">Checking Sync...</p>
+            </div>
+            <div class="flex gap-2">
+                 <button onclick="downloadBackup()" title="Download Backup" class="bg-blue-50 text-blue-600 p-2.5 rounded-full active:scale-90">📥</button>
+                 <button onclick="saveToGitHub()" title="Save to Cloud" class="bg-green-600 text-white p-2.5 rounded-full shadow-lg active:scale-90">💾</button>
+                 <button onclick="setupToken()" title="Token Settings" class="bg-gray-100 p-2.5 rounded-full active:scale-90">🔑</button>
+            </div>
         </div>
-        <div class="flex gap-3">
-             <button onclick="saveToGitHub()" class="bg-green-600 text-white p-2.5 rounded-full shadow-lg active:scale-90 transition">💾</button>
-             <button onclick="setupToken()" class="bg-gray-100 p-2.5 rounded-full active:scale-90 transition">🔑</button>
+        <div class="relative">
+            <input id="search-input" type="text" oninput="renderBoard()" placeholder="検索 (Title, Goal, Note)..." class="w-full bg-gray-100 border-none rounded-lg p-2 text-sm pl-8 focus:ring-2 focus:ring-blue-200 outline-none">
+            <span class="absolute left-2.5 top-2.5 text-gray-400 text-xs">🔍</span>
         </div>
     </header>
 
@@ -32,23 +39,18 @@
         <div id="add-form" class="mb-6">
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                 <input id="new-title" type="text" placeholder="タイトル..." class="w-full border-b border-gray-100 p-2 mb-3 outline-none text-lg">
-                <input id="new-link" type="url" placeholder="URL (Amazon, etc)" class="w-full border-b border-gray-100 p-2 mb-4 outline-none text-sm text-blue-500">
-                
+                <input id="new-link" type="url" placeholder="URL (Amazon, etc)" class="w-full border-b border-gray-100 p-2 mb-4 outline-none text-xs text-blue-500">
                 <div class="grid grid-cols-2 gap-2 mb-4">
                     <select id="new-type" class="bg-gray-50 p-2 rounded-lg text-xs font-bold border-none">
-                        <option value="Book">📚 本</option>
-                        <option value="Movie">🎬 映画</option>
-                        <option value="Drama">📺 ドラマ</option>
+                        <option value="Book">📚 本</option><option value="Movie">🎬 映画</option><option value="Drama">📺 ドラマ</option>
                     </select>
                     <select id="new-goal" class="bg-gray-50 p-2 rounded-lg text-xs font-bold border-none">
-                        <option value="technical">💻 Technical</option>
-                        <option value="finance">💰 Finance</option>
-                        <option value="religion">🙏 Strategy/Rel</option>
-                        <option value="howto">🛠 How-To</option>
+                        <option value="technical">💻 Technical</option><option value="finance">💰 Finance</option>
+                        <option value="religion">🙏 Strategy/Rel</option><option value="howto">🛠 How-To</option>
                         <option value="entertainment">🎭 Entertainment</option>
                     </select>
                 </div>
-                <button onclick="addNewItem()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md">リストに追加</button>
+                <button onclick="addNewItem()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold shadow-md active:bg-blue-700">追加する</button>
             </div>
         </div>
 
@@ -56,15 +58,20 @@
     </main>
 
     <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 flex justify-around items-center h-20 shadow-lg z-20">
-        <button onclick="changeTab('to-read')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-to-read"><span class="text-xl">📅</span><span class="text-[10px] font-black">予定</span></button>
-        <button onclick="changeTab('progress')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-progress"><span class="text-xl">📖</span><span class="text-[10px] font-black">進行中</span></button>
-        <button onclick="changeTab('complete')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-complete"><span class="text-xl">✅</span><span class="text-[10px] font-black">完了</span></button>
+        <button onclick="changeTab('to-read')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-to-read"><span class="text-xl">📅</span><span class="text-[10px] font-black uppercase">予定</span></button>
+        <button onclick="changeTab('progress')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-progress"><span class="text-xl">📖</span><span class="text-[10px] font-black uppercase">進行</span></button>
+        <button onclick="changeTab('complete')" class="nav-btn flex flex-col items-center justify-center flex-1 h-full text-gray-400" id="btn-complete"><span class="text-xl">✅</span><span class="text-[10px] font-black uppercase">完了</span></button>
     </nav>
 
     <script>
         let myContent = [];
         let currentTab = 'to-read';
-        let GITHUB_CONFIG = { token: localStorage.getItem('gh_token') || '', owner: 'iuchino', repo: 'content-kanban', path: 'data.json' };
+        let GITHUB_CONFIG = { 
+            token: localStorage.getItem('gh_token') || '', 
+            owner: 'iuchino', 
+            repo: 'content-kanban', 
+            path: 'data.json' 
+        };
 
         async function loadData() {
             document.getElementById('sync-status').innerText = "Syncing...";
@@ -78,31 +85,38 @@
                     renderBoard();
                     document.getElementById('sync-status').innerText = "Cloud Sync Active";
                 }
-            } catch (e) { document.getElementById('sync-status').innerText = "Offline"; }
+            } catch (e) { document.getElementById('sync-status').innerText = "Offline Mode"; }
         }
 
         function renderBoard() {
             const container = document.getElementById('list-container');
+            const search = document.getElementById('search-input').value.toLowerCase();
             container.innerHTML = '';
-            const filtered = myContent.filter(item => item.status === currentTab);
+            
+            const filtered = myContent.filter(item => {
+                const matchesTab = item.status === currentTab;
+                const matchesSearch = item.title.toLowerCase().includes(search) || 
+                                     (item.goal && item.goal.toLowerCase().includes(search)) ||
+                                     (item.note && item.note.toLowerCase().includes(search));
+                return matchesTab && matchesSearch;
+            });
             
             filtered.forEach(item => {
                 const card = document.createElement('div');
-                const goalClass = `cat-${item.goal || 'entertainment'}`;
-                card.className = `bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative ${goalClass}`;
+                card.className = `bg-white p-5 rounded-2xl shadow-sm border border-gray-100 relative cat-${item.goal || 'entertainment'}`;
                 card.innerHTML = `
                     <div class="flex justify-between items-center mb-2">
                         <span class="text-[9px] font-black text-gray-400 uppercase tracking-tighter">${item.type} | ${item.goal || 'General'}</span>
                         <button onclick="deleteItem(${item.id})" class="text-gray-300">✕</button>
                     </div>
-                    <h3 class="font-bold text-gray-800 text-md mb-1 leading-tight">${item.title}</h3>
-                    ${item.url ? `<a href="${item.url}" target="_blank" class="text-[10px] text-blue-500 underline mb-3 block">🔗 Open Link</a>` : ''}
-                    <textarea onchange="updateNote(${item.id}, this.value)" placeholder="Notes..." class="w-full text-xs p-3 bg-gray-50 rounded-xl h-24 mb-3 border-none outline-none">${item.note || ''}</textarea>
+                    <h3 class="font-bold text-gray-800 mb-1 leading-tight text-lg">${item.title}</h3>
+                    ${item.url ? `<a href="${item.url}" target="_blank" class="text-[11px] text-blue-500 underline mb-3 block truncate">🔗 Open Resource</a>` : ''}
+                    <textarea onchange="updateNote(${item.id}, this.value)" placeholder="メモを残す..." class="w-full text-sm p-3 bg-gray-50 rounded-xl h-28 mb-4 border-none outline-none focus:ring-1 focus:ring-blue-100">${item.note || ''}</textarea>
                     <div class="flex gap-2">
                         ${currentTab !== 'complete' ? 
-                            `<button onclick="moveItem(${item.id})" class="w-full bg-blue-50 text-blue-600 font-bold py-2.5 rounded-xl text-xs">NEXT →</button>` : 
-                            `<select onchange="updateRating(${item.id}, this.value)" class="w-full bg-yellow-50 text-yellow-700 font-bold py-2.5 px-4 rounded-xl text-xs border-none">
-                                <option value="0">Rating</option>${[1,2,3,4,5].map(n => `<option value="${n}" ${item.rating == n ? 'selected' : ''}>⭐ ${n} Stars</option>`).join('')}
+                            `<button onclick="moveItem(${item.id})" class="w-full bg-blue-600 text-white font-bold py-3 rounded-xl text-sm shadow-md active:bg-blue-700">NEXT →</button>` : 
+                            `<select onchange="updateRating(${item.id}, this.value)" class="w-full bg-yellow-50 text-yellow-700 font-bold py-3 px-4 rounded-xl text-sm border-none outline-none">
+                                <option value="0">Rating: なし</option>${[1,2,3,4,5].map(n => `<option value="${n}" ${item.rating == n ? 'selected' : ''}>⭐ ${n} Stars</option>`).join('')}
                             </select>`
                         }
                     </div>
@@ -111,26 +125,26 @@
             });
         }
 
-        function addNewItem() {
-            const title = document.getElementById('new-title').value;
-            if(!title) return;
-            myContent.push({ 
-                id: Date.now(), 
-                title, 
-                url: document.getElementById('new-link').value, 
-                type: document.getElementById('new-type').value, 
-                goal: document.getElementById('new-goal').value,
-                status: 'to-read', note: '', rating: 0 
-            });
-            document.getElementById('new-title').value = '';
-            document.getElementById('new-link').value = '';
-            renderBoard();
+        function downloadBackup() {
+            const blob = new Blob([JSON.stringify(myContent, null, 2)], {type: 'application/json'});
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `kanban_backup_${new Date().toISOString().slice(0,10)}.json`;
+            a.click();
+            URL.revokeObjectURL(url);
         }
 
         // Standard logic remains the same...
+        function addNewItem() {
+            const title = document.getElementById('new-title').value;
+            if(!title) return;
+            myContent.push({ id: Date.now(), title, url: document.getElementById('new-link').value, type: document.getElementById('new-type').value, goal: document.getElementById('new-goal').value, status: 'to-read', note: '', rating: 0 });
+            document.getElementById('new-title').value = ''; document.getElementById('new-link').value = ''; renderBoard();
+        }
         function changeTab(tab) {
             currentTab = tab;
-            document.getElementById('view-title').innerText = {'to-read': '予定リスト', 'progress': '進行中', 'complete': '完了リスト'}[tab];
+            document.getElementById('view-title').innerText = {'to-read': '予定リスト', 'progress': '進行中', 'complete': '完了アーカイブ'}[tab];
             document.getElementById('add-form').style.display = (tab === 'to-read') ? 'block' : 'none';
             document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('tab-active'));
             document.getElementById(`btn-${tab}`).classList.add('tab-active');
@@ -139,19 +153,19 @@
         function updateNote(id, val) { myContent.find(i => i.id === id).note = val; }
         function updateRating(id, val) { myContent.find(i => i.id === id).rating = parseInt(val); renderBoard(); }
         function moveItem(id) { const item = myContent.find(i => i.id === id); item.status = (item.status === 'to-read') ? 'progress' : 'complete'; renderBoard(); }
-        function deleteItem(id) { if(confirm("削除？")) { myContent = myContent.filter(i => i.id !== id); renderBoard(); } }
-        function setupToken() { const t = prompt("Token:", GITHUB_CONFIG.token); if(t !== null) { GITHUB_CONFIG.token = t; localStorage.setItem('gh_token', t); loadData(); } }
+        function deleteItem(id) { if(confirm("削除しますか？")) { myContent = myContent.filter(i => i.id !== id); renderBoard(); } }
+        function setupToken() { const t = prompt("GitHub Token:", GITHUB_CONFIG.token); if(t !== null) { GITHUB_CONFIG.token = t; localStorage.setItem('gh_token', t); loadData(); } }
         async function saveToGitHub() {
-            if(!GITHUB_CONFIG.token) { alert("No Token"); return; }
+            if(!GITHUB_CONFIG.token) { alert("Tokenを設定してください"); return; }
             const content = btoa(unescape(encodeURIComponent(JSON.stringify(myContent, null, 2))));
             const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
             const getRes = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token}` }});
             const fileData = getRes.ok ? await getRes.json() : null;
             const res = await fetch(url, {
                 method: 'PUT', headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: "Update", content, sha: fileData ? fileData.sha : null })
+                body: JSON.stringify({ message: "Update via App", content, sha: fileData ? fileData.sha : null })
             });
-            if(res.ok) alert("Saved!"); else alert("Error");
+            if(res.ok) { alert("保存しました！"); loadData(); } else alert("エラー");
         }
         loadData();
         changeTab('to-read');
