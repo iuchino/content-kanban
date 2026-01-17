@@ -2,21 +2,29 @@
   {
     "id": 1001,
     "title": "Generative AI Foundations",
+    "url": "",
     "type": "Book",
+    "goal": "technical",
     "status": "progress",
-    "note": "Learning how to better integrate Gemini into daily workflows."
+    "note": "Learning how to better integrate Gemini into daily workflows.",
+    "rating": 0
   },
   {
     "id": 1002,
     "title": "DevSecOps Handbook",
+    "url": "",
     "type": "Book",
+    "goal": "technical",
     "status": "to-read",
-    "note": "Professional development for OpenText/ALM alignment."
+    "note": "Professional development for OpenText/ALM alignment.",
+    "rating": 0
   },
   {
     "id": 1003,
     "title": "Atomic Habits (複利で伸びる1つの習慣)",
+    "url": "",
     "type": "Book",
+    "goal": "howto",
     "status": "complete",
     "rating": 5,
     "note": "Excellent for gym and study consistency."
@@ -24,14 +32,19 @@
   {
     "id": 1004,
     "title": "Oppenheimer",
+    "url": "",
     "type": "Movie",
+    "goal": "entertainment",
     "status": "to-read",
-    "note": "Highly rated historical drama."
+    "note": "Highly rated historical drama.",
+    "rating": 0
   },
   {
     "id": 1005,
     "title": "The Big Short (マネー・ショート)",
+    "url": "",
     "type": "Movie",
+    "goal": "finance",
     "status": "complete",
     "rating": 4,
     "note": "Insightful for financial strategy and market risks."
