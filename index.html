@@ -112,4 +112,26 @@
             if(!GITHUB_CONFIG.token) { alert("先にTokenを設定してください"); return; }
             
             const content = btoa(unescape(encodeURIComponent(JSON.stringify(myContent, null, 2))));
-            const url =
+            const url = `https://api.github.com/repos/${GITHUB_CONFIG.owner}/${GITHUB_CONFIG.repo}/contents/${GITHUB_CONFIG.path}`;
+            
+            const getRes = await fetch(url, { headers: { 'Authorization': `token ${GITHUB_CONFIG.token}` }});
+            const fileData = getRes.ok ? await getRes.json() : null;
+
+            const res = await fetch(url, {
+                method: 'PUT',
+                headers: { 'Authorization': `token ${GITHUB_CONFIG.token}`, 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: "Update content list",
+                    content: content,
+                    sha: fileData ? fileData.sha : null
+                })
+            });
+
+            if(res.ok) alert("GitHubへ保存しました！");
+            else alert("エラーが発生しました。Tokenを確認してください。");
+        }
+
+        loadData();
+    </script>
+</body>
+</html>
