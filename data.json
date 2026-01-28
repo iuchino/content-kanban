@@ -188,5 +188,15 @@
     "status": "to-read",
     "note": "",
     "rating": 0
+  },
+  {
+    "id": 1769605999491,
+    "title": "The Software Engineer's Guidebook",
+    "url": "https://amzn.asia/d/b5391R8",
+    "type": "Book",
+    "goal": "technical",
+    "status": "to-read",
+    "note": "",
+    "rating": 0
   }
 ]
