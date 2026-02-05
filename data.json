@@ -248,5 +248,16 @@
     "status": "to-read",
     "note": "",
     "rating": 0
+  },
+  {
+    "id": 1770276990815,
+    "title": "本",
+    "url": "",
+    "type": "Book",
+    "goal": "spiritual",
+    "status": "to-read",
+    "note": "",
+    "rating": 0,
+    "completedAt": null
   }
 ]
