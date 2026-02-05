@@ -8,12 +8,10 @@
     <style>
         body { padding-bottom: 110px; font-family: -apple-system, system-ui, sans-serif; overflow-x: hidden; -webkit-tap-highlight-color: transparent; }
         .tab-active { color: #2563eb; border-top: 3px solid #2563eb; background-color: #f8fafc; }
-        
-        /* Category Colors */
         .cat-technical { border-left: 5px solid #3b82f6; } 
         .cat-finance { border-left: 5px solid #10b981; }   
         .cat-religion { border-left: 5px solid #8b5cf6; }  
-        .cat-spiritual { border-left: 5px solid #ec4899; } /* Pink for Spiritual */
+        .cat-spiritual { border-left: 5px solid #ec4899; } /* New Color for Spiritual */
         .cat-howto { border-left: 5px solid #f59e0b; }     
         .cat-entertainment { border-left: 5px solid #ef4444; }
 
@@ -51,19 +49,19 @@
         <div id="add-form" class="mb-6">
             <div class="bg-white p-5 rounded-2xl shadow-sm border border-gray-100">
                 <input id="new-title" type="text" placeholder="タイトル..." class="w-full border-b border-gray-100 p-2 mb-3 outline-none text-lg font-bold">
-                <input id="new-link" type="url" placeholder="URL (Amazon, YouTubeなど)" class="w-full border-b border-gray-100 p-2 mb-4 outline-none text-xs text-blue-500">
+                <input id="new-link" type="url" placeholder="URL (Amazon/YouTube)" class="w-full border-b border-gray-100 p-2 mb-4 outline-none text-xs text-blue-500">
                 <div class="grid grid-cols-2 gap-2 mb-4">
                     <select id="new-type" class="bg-gray-50 p-2 rounded-lg text-xs font-bold border-none">
                         <option value="Book">📚 本</option>
-                        <option value="YouTube">🎥 YouTube</option>
+                        <option value="YouTube">🔴 YouTube</option>
                         <option value="Movie">🎬 映画</option>
                         <option value="Drama">📺 ドラマ</option>
                     </select>
                     <select id="new-goal" class="bg-gray-50 p-2 rounded-lg text-xs font-bold border-none">
                         <option value="technical">💻 Technical</option>
                         <option value="finance">💰 Finance</option>
-                        <option value="spiritual">✨ Spiritual</option>
                         <option value="religion">🙏 Strategy/Rel</option>
+                        <option value="spiritual">✨ Spiritual</option>
                         <option value="howto">🛠 How-To</option>
                         <option value="entertainment">🎭 Entertainment</option>
                     </select>
@@ -142,6 +140,7 @@
             const container = document.getElementById('list-container');
             container.innerHTML = '';
             const search = document.getElementById('search-input').value.toLowerCase();
+            
             myContent.filter(item => item.status === currentTab && item.title.toLowerCase().includes(search))
             .forEach(item => {
                 const card = document.createElement('div');
@@ -151,6 +150,7 @@
                     <div class="swipe-content bg-white p-5 border border-gray-100 cat-${item.goal || 'entertainment'}" ontouchstart="tS(event)" ontouchmove="tM(event, this)">
                         <div class="flex justify-between items-center mb-1">
                             <span class="text-[9px] font-black text-gray-400 uppercase tracking-widest">${item.type} | ${item.goal}</span>
+                            ${item.completedAt ? `<span class="text-[9px] text-green-500 font-bold">Done: ${item.completedAt}</span>` : ''}
                         </div>
                         <h3 class="font-bold text-gray-800 text-lg mb-1 leading-tight pr-10">${item.title}</h3>
                         ${item.url ? `<a href="${item.url}" target="_blank" class="text-[11px] text-blue-500 underline mb-3 block truncate">🔗 リソースを開く</a>` : ''}
@@ -166,18 +166,48 @@
         }
 
         function tS(e) { touchStartX = e.touches[0].clientX; }
-        function tM(e, el) { let d = touchStartX - e.touches[0].clientX; if(d > 60) el.style.transform = "translateX(-80px)"; else if(d < -20) el.style.transform = "translateX(0px)"; }
+        function tM(e, el) { 
+            let d = touchStartX - e.touches[0].clientX; 
+            if(d > 60) el.style.transform = "translateX(-80px)"; 
+            else if(d < -20) el.style.transform = "translateX(0px)"; 
+        }
         
         function addNewItem() {
             const titleInput = document.getElementById('new-title');
             const linkInput = document.getElementById('new-link');
             if(!titleInput.value) return;
-            myContent.push({ id: Date.now(), title: titleInput.value, url: linkInput.value, type: document.getElementById('new-type').value, goal: document.getElementById('new-goal').value, status: 'to-read', note: '', rating: 0 });
+            myContent.push({ 
+                id: Date.now(), 
+                title: titleInput.value, 
+                url: linkInput.value, 
+                type: document.getElementById('new-type').value, 
+                goal: document.getElementById('new-goal').value, 
+                status: 'to-read', 
+                note: '', 
+                rating: 0,
+                completedAt: null 
+            });
             titleInput.value = ''; linkInput.value = ''; updateUI();
         }
 
-        function moveItem(id) { let i = myContent.find(x=>x.id===id); if(i.status==='to-read'){ if(myContent.filter(x=>x.status==='progress').length>=4){alert("Limit 4!"); return;} i.status='progress'; } else { i.status='complete'; } updateUI(); }
-        function moveBack(id) { myContent.find(x=>x.id===id).status='to-read'; updateUI(); }
+        function moveItem(id) { 
+            let i = myContent.find(x=>x.id===id); 
+            if(i.status==='to-read'){ 
+                if(myContent.filter(x=>x.status==='progress').length>=4){alert("Limit 4!"); return;} 
+                i.status='progress'; 
+            } else { 
+                i.status='complete';
+                i.completedAt = new Date().toLocaleDateString('ja-JP'); // Add Date
+            } 
+            updateUI(); 
+        }
+
+        function moveBack(id) { 
+            let i = myContent.find(x=>x.id===id);
+            i.status='to-read'; 
+            i.completedAt = null; // Clear date if moved back
+            updateUI(); 
+        }
         function updateNote(id, v) { myContent.find(x=>x.id===id).note = v; }
         function updateRating(id, v) { myContent.find(x=>x.id===id).rating = parseInt(v); updateUI(); }
         function deleteItem(id) { if(confirm("削除しますか？")) { myContent = myContent.filter(x=>x.id !== id); updateUI(); } }
@@ -195,13 +225,13 @@
             const activeBtn = document.getElementById(`btn-${status}`);
             if(activeBtn) activeBtn.classList.add('tab-active'); 
             
-            renderBoard(); 
+            updateUI(); 
         }
 
         function setupToken() { let t = prompt("Token:", GITHUB_CONFIG.token); if(t){ GITHUB_CONFIG.token = t.trim(); localStorage.setItem('gh_token', t.trim()); loadData(); } }
         function downloadBackup() { const blob = new Blob([JSON.stringify(myContent, null, 2)], {type: 'application/json'}); const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = `kanban_backup.json`; a.click(); }
 
-        // Initial Load
+        // INITIAL LOAD
         loadData().then(() => {
             changeTab(currentTab, currentLabel);
         });
